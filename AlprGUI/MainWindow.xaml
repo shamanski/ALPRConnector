@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AlprGUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="600" Width="800">
     <DockPanel>
         <!-- Status Bar -->
         <StatusBar DockPanel.Dock="Bottom">
@@ -27,6 +27,12 @@
             </ListBoxItem>
             <ListBoxItem>
                 <TextBlock Text="Settings" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
+                <TextBlock Text="Virtual COM Ports" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
+                <TextBlock Text="LPR Readers" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
                 <TextBlock Text="About" Margin="10" Padding="5"/>

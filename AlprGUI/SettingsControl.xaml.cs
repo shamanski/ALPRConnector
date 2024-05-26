@@ -1,108 +1,137 @@
 ﻿using AppDomain;
 using System.Collections.ObjectModel;
+using System.Configuration;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media.Media3D;
+using Camera = AppDomain.Camera;
 
 namespace AlprGUI
 {
     public partial class SettingsControl : UserControl
     {
-        public ObservableCollection<Camera> Cameras { get; set; }
-        private bool isEditing;
-        TextBox cameraNameTextBox;
-        TextBox cameraAddressTextBox;
-        Button saveButton;
-        Button cancelButton;
+        private readonly CameraManager cameraManager;
 
+        public ObservableCollection<Camera> Cameras { get; set; }
+        private AppSettings appSettings { get; set; }
+        
         public SettingsControl()
         {
             InitializeComponent();
+            cameraManager = new CameraManager();
             Cameras = new ObservableCollection<Camera>();
-            CameraList.ItemsSource = Cameras;
+            CamerasList.ItemsSource = Cameras;
+            appSettings = ConfigurationLoader.LoadSettings();
+            ChangeVisibility();
+            LoadCamerasFromSettings();
         }
 
         private void AddCameraButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowCameraFields();
+            CameraForm cameraForm = new CameraForm();
+            cameraForm.SaveClicked += SaveCameraButton_Click;
+            cameraForm.CancelClicked += CameraForm_CancelClicked;
+            HideCameraFields();
+            CameraFieldsStackPanel.Children.Add(cameraForm);
         }
 
         private void EditCameraButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowCameraFields();
-            // Здесь также можно заполнить текстовые поля текущими значениями камеры для редактирования
-        }
-
-        private void SaveCameraButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Сохранение или обновление информации о камере
-            if (isEditing)
+            if (CamerasList.SelectedItem is Camera selectedCamera)
             {
-                Camera newCamera = new Camera();
-                newCamera.Name = cameraNameTextBox.Text;
-                newCamera.IpAddress = cameraAddressTextBox.Text;
-                //newCamera.Description = cameraDescriptionTextBox.Text;
-                Cameras.Add(newCamera);
+                CameraForm cameraForm = new CameraForm();
+                cameraForm.SaveClicked += SaveCameraButton_Click;
+                cameraForm.CancelClicked += CameraForm_CancelClicked;
+                var camera = cameraManager.GetCameraByName(selectedCamera.Name);
+                cameraForm.Camera = camera;
+                cameraForm.DataContext = camera;
+                CameraFieldsStackPanel.Children.Add(cameraForm);
+                HideCameraFields();              
             }
-            else
+        }
+
+        private void SaveCameraButton_Click(object sender, CameraEventArgs e)
+        {
+            if (sender is CameraForm cameraForm)
             {
-                
+                cameraForm.SaveClicked -= SaveCameraButton_Click;
+                cameraForm.CancelClicked -= CameraForm_CancelClicked;
+                ChangeVisibility();
+                cameraForm.SaveClicked -= SaveCameraButton_Click;
+                cameraForm.CancelClicked -= CameraForm_CancelClicked;
+                CameraFieldsStackPanel.Children.Remove(cameraForm);
+                try
+                {
+                    cameraManager.AddCamera(e.Camera);
+                }
+                catch (Exception ex)
+                {
+                    MessageBoxResult result = MessageBox.Show(ex.Message);
+                }
+                LoadCamerasFromSettings();
             }
-
-            // Скрытие текстовых полей и кнопок после сохранения
-            HideCameraFields();
-            isEditing = false;
-        }
-
-        private void CancelCameraButton_Click(object sender, RoutedEventArgs e)
-        {
-            // Скрытие текстовых полей и кнопок при отмене
-            HideCameraFields();
-        }
-
-        public void ShowCameraFields()
-        {
-            isEditing = true;
-            AddCameraButton.IsEnabled = false;
-            RemoveCameraButton.IsEnabled = false;
-            cameraNameTextBox = new TextBox();
-            cameraAddressTextBox = new TextBox();
-            saveButton = new Button { Content = "Сохранить" };
-            cancelButton = new Button { Content = "Отмена" };
-            saveButton.Click += SaveCameraButton_Click;
-            cancelButton.Click += CancelCameraButton_Click;
-
-            CameraFieldsStackPanel.Children.Add(cameraNameTextBox);
-            CameraFieldsStackPanel.Children.Add(cameraAddressTextBox);
-            CameraFieldsStackPanel.Children.Add(saveButton);
-            CameraFieldsStackPanel.Children.Add(cancelButton);
         }
 
         public void HideCameraFields()
         {
-            // Удаление всех элементов из StackPanel
-            CameraFieldsStackPanel.Children.Clear();
-            AddCameraButton.IsEnabled = true;
-            RemoveCameraButton.IsEnabled = true;
+            AddCameraButton.IsEnabled = false;
+            EditCameraButton.IsEnabled = false;
+            RemoveCameraButton.IsEnabled = false;
+            CamerasList.IsEnabled = false;
         }
 
         private void RemoveCameraButton_Click(object sender, RoutedEventArgs e)
         {
-            // Получаем выбранный элемент из списка камер
-            Camera selectedCamera = CameraList.SelectedItem as Camera;
+            Camera selectedCamera = CamerasList.SelectedItem as Camera;
 
-            // Проверяем, что элемент действительно выбран
             if (selectedCamera != null)
             {
                 MessageBoxResult result = MessageBox.Show("Are you sure?",
                                                    "Remove confirmation",
                                                    MessageBoxButton.YesNo,
                                                    MessageBoxImage.Question);
-
-                // Проверяем результат диалога
                 if (result == MessageBoxResult.Yes)
                 {
-                    // Удаляем выбранную камеру из коллекции
+                    cameraManager.RemoveCamera(selectedCamera.Name);
                     Cameras.Remove(selectedCamera);
+                }
+            }
+        }
+
+        private void CameraForm_CancelClicked(object sender, EventArgs e)
+        {
+            if (sender is CameraForm cameraForm)
+            {
+                cameraForm.SaveClicked -= SaveCameraButton_Click;
+                cameraForm.CancelClicked -= CameraForm_CancelClicked;
+                CameraFieldsStackPanel.Children.Remove(cameraForm);
+                ChangeVisibility();
+            }
+        }
+
+        private void CamerasList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ChangeVisibility();
+        }
+
+        private void ChangeVisibility()
+        {
+            bool isSelected = CamerasList.SelectedItem != null;
+            EditCameraButton.IsEnabled = isSelected;
+            RemoveCameraButton.IsEnabled = isSelected;
+            AddCameraButton.IsEnabled = true;
+            CamerasList.IsEnabled = true;
+        }
+
+        private void LoadCamerasFromSettings()
+        {
+            Cameras.Clear();
+            appSettings = ConfigurationLoader.LoadSettings();
+            if (appSettings?.Cameras != null)
+            {
+                foreach (var camera in appSettings.Cameras)
+                {
+                    Cameras.Add(camera);
                 }
             }
         }

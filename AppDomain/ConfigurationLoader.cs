@@ -2,7 +2,7 @@
 using System;
 using System.Text.Json;
 
-namespace ConsoleApp1
+namespace AppDomain
 {
     public static class ConfigurationLoader
     {
@@ -23,7 +23,7 @@ namespace ConsoleApp1
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
             var json = JsonSerializer.Serialize(settings, options);
-            File.WriteAllText("appssetings.json", json);
+            File.WriteAllText("appsettings.json", json);
         }
     }
 }

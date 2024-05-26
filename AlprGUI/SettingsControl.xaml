@@ -8,9 +8,16 @@
     <Grid>
         <StackPanel>
             <TextBlock Text="Manage Cameras" FontWeight="Bold" Margin="10"/>
-            <ListBox x:Name="CameraList" Height="150" Margin="10" DisplayMemberPath="Name"/>
+            <ListBox x:Name="CamerasList" Height="200" SelectionChanged="CamerasList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
                 <Button x:Name="AddCameraButton" Content="Add Camera" Margin="5" Click="AddCameraButton_Click"/>
+                <Button x:Name="EditCameraButton" Content="Edit Camera" Margin="5" Click="EditCameraButton_Click"/>
                 <Button x:Name="RemoveCameraButton" Content="Remove Camera" Margin="5" Click="RemoveCameraButton_Click"/>
             </StackPanel>
             <StackPanel x:Name="CameraFieldsStackPanel" Orientation="Vertical" Margin="10"/>
