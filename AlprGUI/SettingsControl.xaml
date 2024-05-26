@@ -1,0 +1,19 @@
+﻿<UserControl x:Class="AlprGUI.SettingsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="400">
+    <Grid>
+        <StackPanel>
+            <TextBlock Text="Manage Cameras" FontWeight="Bold" Margin="10"/>
+            <ListBox x:Name="CameraList" Height="150" Margin="10" DisplayMemberPath="Name"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button x:Name="AddCameraButton" Content="Add Camera" Margin="5" Click="AddCameraButton_Click"/>
+                <Button x:Name="RemoveCameraButton" Content="Remove Camera" Margin="5" Click="RemoveCameraButton_Click"/>
+            </StackPanel>
+            <StackPanel x:Name="CameraFieldsStackPanel" Orientation="Vertical" Margin="10"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

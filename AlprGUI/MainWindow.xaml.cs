@@ -66,7 +66,7 @@ namespace AlprGUI
                             ShowHomeContent();
                             break;
                         case "Settings":
-                            //ShowSettingsContent();
+                            ShowSettingsContent();
                             break;
                         case "About":
                             //ShowAboutContent();
@@ -108,7 +108,7 @@ namespace AlprGUI
 
             var selectAreaButton = new Button
             {
-                Content = "Выделить область",
+                Content = "Select LPR area",
                 Margin = new Thickness(5)
             };
             selectAreaButton.Click += SelectAreaButton_Click;
@@ -214,6 +214,13 @@ namespace AlprGUI
                 bitmapSource.Freeze(); // Размораживаем изображение, чтобы его можно было использовать в разных потоках
                 return bitmapSource;
             }
+        }
+
+        private void ShowSettingsContent()
+        {
+            var settingsControl = new SettingsControl();
+            MainContent.Children.Clear();
+            MainContent.Children.Add(settingsControl);
         }
     }
 }
