@@ -14,4 +14,12 @@
     <PackageReference Include="Emgu.CV.runtime.windows" Version="4.9.0.5494" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AppDomain\AppDomain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Models\" />
+  </ItemGroup>
+
 </Project>

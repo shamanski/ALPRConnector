@@ -1,4 +1,5 @@
-﻿using Emgu.CV;
+﻿using AppDomain;
+using Emgu.CV;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -7,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -24,7 +26,7 @@ namespace AlprGUI
         private Point startPoint;
         private Rectangle selectionRectangle;
         private Canvas canvas;
-        private VideoCapture videoCapture;
+        private VideoCaptureManager videoCaptureManager;
         private Image imageControl;
 
         public string StatusMessage
@@ -76,7 +78,7 @@ namespace AlprGUI
             }
         }
 
-        private void ShowHomeContent()
+        private async void ShowHomeContent()
         {
             MainContent.Children.Clear();
 
@@ -88,12 +90,10 @@ namespace AlprGUI
             rowDefinition2.Height = GridLength.Auto; 
             grid.RowDefinitions.Add(rowDefinition1);
             grid.RowDefinitions.Add(rowDefinition2);
-
             canvas = new Canvas();
-            videoCapture = new VideoCapture(@"rtsp://admin:admin@192.168.107.166:8080");
             imageControl = new Image();
             imageControl.Stretch = Stretch.Uniform;
-            Task.Run(ProcessFrames);
+            await StartCamera("default");
             canvas.Children.Add(imageControl);
             canvas.MouseDown += Canvas_MouseDown;
             canvas.MouseMove += Canvas_MouseMove;
@@ -186,42 +186,33 @@ namespace AlprGUI
             }
         }
 
+        private async Task StartCamera(string cameraName)
+        {
+            var videoCaptureManager = VideoCaptureManager.Instance;
+            await videoCaptureManager.StartProcessingAsync(cameraName, frame =>
+            {
+                // Обработчик кадров
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // Обновление интерфейса
+                    BitmapSource bitmapSource = ToBitmapSource(frame);
+                    imageControl.Source = bitmapSource;
+                });
+            });
+        }
+
         private BitmapSource ToBitmapSource(Mat mat)
         {
-            using (System.Drawing.Bitmap bitmap = mat.ToBitmap())
+            using (var bitmap = mat.ToBitmap())
             {
-                IntPtr bmpPt = bitmap.GetHbitmap();
-                BitmapSource bitmapSource = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(
-                    bmpPt,
+                IntPtr hBitmap = bitmap.GetHbitmap();
+                BitmapSource bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
+                    hBitmap,
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
                 bitmapSource.Freeze(); // Размораживаем изображение, чтобы его можно было использовать в разных потоках
                 return bitmapSource;
-            }
-        }
-
-        private async Task ProcessFrames()
-        {
-            while (true)
-            {
-                // Получаем кадр в фоновом потоке
-                Mat frame = await Task.Run(() => videoCapture.QueryFrame());
-
-                // Обновляем изображение в UI потоке
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    if (frame != null)
-                    {
-                        BitmapSource bitmapSource = ToBitmapSource(frame);
-                        imageControl.Source = bitmapSource;
-
-                        // Устанавливаем положение изображения внутри Canvas
-                        Canvas.SetLeft(imageControl, 0);
-                        Canvas.SetTop(imageControl, 0);
-                        Canvas.SetZIndex(imageControl, 0);
-                    }
-                });
             }
         }
     }
