@@ -1,0 +1,45 @@
+﻿<Window x:Class="AlprGUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AlprGUI"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <DockPanel>
+        <!-- Status Bar -->
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock Text="Ready" />
+            </StatusBarItem>
+            <StatusBarItem>
+                <Separator />
+            </StatusBarItem>
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}" />
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- Side Menu -->
+        <ListBox DockPanel.Dock="Left" Width="200" Background="#EEE" SelectionChanged="ListBox_SelectionChanged">
+            <ListBoxItem>
+                <TextBlock Text="Home" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
+                <TextBlock Text="Settings" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
+                <TextBlock Text="About" Margin="10" Padding="5"/>
+            </ListBoxItem>
+        </ListBox>
+
+        <!-- Main Content Area -->
+        <Grid x:Name="MainContent">
+            <!-- Default Content -->
+            <TextBlock Text="Welcome to ALPR GUI" 
+                       VerticalAlignment="Center" 
+                       HorizontalAlignment="Center" 
+                       FontSize="24"/>
+        </Grid>
+    </DockPanel>
+</Window>
