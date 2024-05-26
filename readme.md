@@ -1,15 +1,13 @@
 ﻿# ONNX Object Detection + License Plate Detection
-An object + license plate detection (from a video/image) solution, leveraging Open ALPR (.NET Framework) & ML.Net ONNX Detection (.NET Core).
+An object + license plate detection (from a video/image) solution, leveraging Open ALPR (.NET Framework)
 
 | Name | Repository |
 | ------ | ------ |
 | Open ALPR | [Github Repository](https://github.com/openalpr/openalpr) |
-| ML ONNX Object Detection | [Github Repository](https://github.com/dotnet/machinelearning-samples/tree/master/samples/csharp/end-to-end-apps/ObjectDetection-Onnx) |
 
 ### Getting Started
 
-+ The startup project should be MLNetOnnxAlpr.SampleUi [Build x64]
-+ Change the file in MainWindow.xaml.cs -> var videoFilePath = String.Empty; [Line 77]
+
 
 ### Points of Interest
 
@@ -39,19 +37,3 @@ Open ALPR requires dependencies not included / built into OpenAlprClient, the fi
 
 ##### .NET Core & .NET Framework woes
 + Yes, it's a .NET Core application calling a .NET Framework DLL which is quite bad, yet you could create an API / micro-service to pass the bitmap too and return the relevant information, for a production end-to-end solution.
-
-#### Background
-
-+ Had the idea with a colleague, using car dash cam(s) to determine the vehicle type/information, as well as log the license plate information.
-+ Realized it was possible with this research publication [Microsoft CNN-Automatic License Plate](https://www.microsoft.com/en-us/research/publication/a-cnn-based-approach-for-automatic-license-plate-recognition-in-the-wild/)
-+ Found a few projects by MicrocontrollersAndMore [OpenCV_3_License_Plate_Recognition](https://github.com/MicrocontrollersAndMore/OpenCV_3_License_Plate_Recognition_Emgu_CV_3_Visual_Basic) (the source is very rough yet functional)
-
-#### Completed & Better Solutions / Alternatives
-
-+ [Deep ANPR - Python](https://github.com/matthewearl/deep-anpr)
-+ [Alpr-Unconstrained - Python](https://github.com/sergiomsilva/alpr-unconstrained)
-
-
-#### Resources
-
-+ [Netron - Onnx Model Viewer](https://github.com/lutzroeder/netron)
