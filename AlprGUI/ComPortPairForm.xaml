@@ -16,12 +16,12 @@
 
         <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical">
             <TextBlock Text="Sender:" VerticalAlignment="Center"/>
-            <ComboBox x:Name="senderComboBox" Width="150" Margin="5" DisplayMemberPath="Name" />
+            <ComboBox x:Name="senderComboBox" Width="150" Margin="5" />
         </StackPanel>
 
         <StackPanel Grid.Column="2" Grid.Row="0" Orientation="Vertical">
             <TextBlock Text="Receiver:" VerticalAlignment="Center"/>
-            <ComboBox x:Name="receiverComboBox" Width="150" Margin="5" DisplayMemberPath="Name" />
+            <ComboBox x:Name="receiverComboBox" Width="150" Margin="5"  />
         </StackPanel>
 
         <!-- Пустая вторая колонка -->

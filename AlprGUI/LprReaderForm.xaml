@@ -1,0 +1,33 @@
+﻿<UserControl x:Class="AlprGUI.LprReaderForm"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="400">
+    <Grid>
+        <StackPanel>
+            <TextBlock Text="Manage LPR Readers" FontWeight="Bold" Margin="10"/>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Name:" VerticalAlignment="Center" Width="100"/>
+                <TextBox x:Name="NameTextBox" Width="200"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="RS485 Address:" VerticalAlignment="Center" Width="100"/>
+                <TextBox x:Name="RS485AddrTextBox" Width="200"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Com Port Pair:" VerticalAlignment="Center" Width="100"/>
+                <ComboBox x:Name="ComPortPairComboBox" Width="200" DisplayMemberPath="Name"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBlock Text="Camera:" VerticalAlignment="Center" Width="100"/>
+                <ComboBox x:Name="CameraComboBox" Width="200" DisplayMemberPath="Name"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button x:Name="SaveButton" Content="Save" Margin="5" Click="SaveButton_Click"/>
+                <Button x:Name="CancelButton" Content="Cancel" Margin="5" Click="CancelButton_Click"/>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</UserControl>

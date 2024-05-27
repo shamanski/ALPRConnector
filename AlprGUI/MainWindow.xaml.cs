@@ -64,17 +64,27 @@ namespace AlprGUI
                         case "Regions":
                             ShowRegionsContent();
                             break;
+                        case "Virtual COM Ports":
+                            ShowComPortsContent();
+                            break;
                         case "Settings":
                             ShowSettingsContent();
                             break;
-                        case "About":
-                            //ShowAboutContent();
+                        case "LPR Readers":
+                            ShowLprReadersContent();
                             break;
                         default:
                             break;
                     }
                 }
             }
+        }
+
+        private void ShowLprReadersContent()
+        {
+            var lprControl = new LprReadersControl();
+            MainContent.Children.Clear();
+            MainContent.Children.Add(lprControl);
         }
 
         private async void ShowRegionsContent()
@@ -191,6 +201,13 @@ namespace AlprGUI
             var settingsControl = new SettingsControl();
             MainContent.Children.Clear();
             MainContent.Children.Add(settingsControl);
+        }
+
+        private void ShowComPortsContent()
+        {
+            var comPortsControl = new ComPortsControl();
+            MainContent.Children.Clear();
+            MainContent.Children.Add(comPortsControl);
         }
     }
 }

@@ -1,0 +1,27 @@
+﻿<UserControl x:Class="AlprGUI.LprReadersControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="300" d:DesignWidth="400">
+    <Grid>
+        <StackPanel>
+            <TextBlock Text="Manage LPR Readers" FontWeight="Bold" Margin="10"/>
+            <ListBox x:Name="LprReadersList" Height="200" SelectionChanged="LprReadersList_SelectionChanged">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10">
+                <Button x:Name="AddReaderButton" Content="Add Reader" Margin="5" Click="AddReaderButton_Click"/>
+                <Button x:Name="EditReaderButton" Content="Edit Reader" Margin="5" Click="EditReaderButton_Click"/>
+                <Button x:Name="RemoveReaderButton" Content="Remove Reader" Margin="5" Click="RemoveReaderButton_Click"/>
+            </StackPanel>
+            <StackPanel x:Name="ReaderFieldsStackPanel" Orientation="Vertical" Margin="10"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+

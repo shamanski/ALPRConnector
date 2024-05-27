@@ -22,7 +22,11 @@ namespace AlprGUI
             this.DataContext = Pair;
             portsManager = new ComPortsManager();
             FreePorts = new ObservableCollection<string>();
-            LoadPairs();
+            //var ports = LoadPorts();
+            senderComboBox.ItemsSource = portsManager.GetFreePorts();
+            senderComboBox.SelectedIndex = 0;
+            receiverComboBox.ItemsSource = portsManager.GetFreePorts();
+            receiverComboBox.SelectedIndex = 1;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -40,12 +44,10 @@ namespace AlprGUI
 
             if (isValid)
             {
-                // If the model is valid, invoke the SaveClicked event
                 SaveClicked?.Invoke(this, new ComPortPairEventArgs(pair));
             }
             else
             {
-                // If the model is invalid, display validation errors
                 string errors = string.Join("\n", results.Select(r => r.ErrorMessage));
                 MessageBox.Show(errors, "Validation Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -56,7 +58,7 @@ namespace AlprGUI
             CancelClicked?.Invoke(this, EventArgs.Empty);
         }
 
-        private void LoadPairs()
+        private void LoadPorts()
         {
             FreePorts.Clear();
             var ports = portsManager.GetFreePorts();

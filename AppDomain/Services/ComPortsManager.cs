@@ -20,6 +20,11 @@ namespace AppDomain
 
         public void AddPair(ComPortPair portPair)
         {
+            if (portPair.Sender == portPair.Receiver)
+            {
+                throw new ArgumentException("Choose different ports!");
+            }
+
             portPair.Name =String.IsNullOrEmpty( portPair.Name ) ? portPair.Sender + "-" + portPair.Receiver : portPair.Name;
             var existingPairIndex = _settings.ComPortPairs.FindIndex(c => c.Name == portPair.Name);
 
@@ -56,8 +61,9 @@ namespace AppDomain
             var availablePorts = SerialPort.GetPortNames();
             for (var i = 1; i < 31 ; i++)
             {
-                if (!availablePorts.Contains(i.ToString()))
-                list.Add(i.ToString());
+                var port = "COM" + i.ToString();
+                if (!availablePorts.Contains(port))
+                list.Add(port);
             }
 
             return list;

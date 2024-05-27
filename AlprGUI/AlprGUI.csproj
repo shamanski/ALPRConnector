@@ -27,6 +27,9 @@
     <Compile Update="ComPortPairForm.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="LprReaderControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="ComPortsControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
