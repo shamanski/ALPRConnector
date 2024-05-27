@@ -43,5 +43,16 @@ namespace AppDomain
         {
             return _settings.Cameras.FirstOrDefault(c => c.Name == name);
         }
+
+        public List<Camera> GetAll()
+        {
+            return _settings.Cameras;
+        }
+
+        public string GetConnectionString(Camera camera)
+        {
+           var prefix = (String.IsNullOrEmpty(camera.Login) || String.IsNullOrEmpty(camera.Password)) ? String.Empty : String.Concat(camera.Login, ":", camera.Password, "@");
+           return String.Concat(@"rtsp://", prefix, camera.IpAddress);
+        }
     }
 }

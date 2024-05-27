@@ -22,12 +22,11 @@ namespace AlprGUI
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private string _statusMessage;
-        private bool isSelectingArea = false;
-        private Point startPoint;
-        private Rectangle selectionRectangle;
-        private Canvas canvas;
-        private VideoCaptureManager videoCaptureManager;
-        private Image imageControl;
+        //private bool isSelectingArea = false;
+        //private Point startPoint;
+        //private Rectangle selectionRectangle;
+       // private VideoCaptureManager videoCaptureManager;
+       // private Image imageControl;
 
         public string StatusMessage
         {
@@ -62,8 +61,8 @@ namespace AlprGUI
                 {
                     switch (textBlock.Text)
                     {
-                        case "Home":
-                            ShowHomeContent();
+                        case "Regions":
+                            ShowRegionsContent();
                             break;
                         case "Settings":
                             ShowSettingsContent();
@@ -78,9 +77,12 @@ namespace AlprGUI
             }
         }
 
-        private async void ShowHomeContent()
+        private async void ShowRegionsContent()
         {
+            var regionsControl = new RegionsControl();
             MainContent.Children.Clear();
+            MainContent.Children.Add(regionsControl);
+          /*  MainContent.Children.Clear();
 
             var grid = new Grid();
 
@@ -124,52 +126,20 @@ namespace AlprGUI
             Grid.SetRow(buttonPanel, 1);
             grid.Children.Add(buttonPanel);
 
-            MainContent.Children.Add(grid);
+            MainContent.Children.Add(grid);*/
         }
 
-        private void SelectAreaButton_Click(object sender, RoutedEventArgs e)
+       /* private void SelectAreaButton_Click(object sender, RoutedEventArgs e)
         {
             isSelectingArea = true;
-        }
+        }*/
 
         private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (isSelectingArea)
-            {
-                Point position = e.GetPosition(canvas);
-                if (position.X >= 0 && position.X <= canvas.ActualWidth &&
-                    position.Y >= 0 && position.Y <= canvas.ActualHeight)
-                {
-                    startPoint = position;
-                    selectionRectangle = new Rectangle
-                    {
-                        Stroke = Brushes.Red,
-                        StrokeThickness = 2
-                    };
-                    Canvas.SetLeft(selectionRectangle, startPoint.X);
-                    Canvas.SetTop(selectionRectangle, startPoint.Y);
-                    Canvas.SetZIndex(selectionRectangle, 1000);
-                    canvas.Children.Add(selectionRectangle);
-                }
-            }
-            else
-            {
-                Point endPoint = e.GetPosition(canvas); 
-                double left = Math.Min(startPoint.X, endPoint.X);
-                double top = Math.Min(startPoint.Y, endPoint.Y);
-                double width = Math.Abs(startPoint.X - endPoint.X);
-                double height = Math.Abs(startPoint.Y - endPoint.Y);
-
-                selectionRectangle.Margin = new Thickness(left, top, 0, 0);
-                selectionRectangle.Width = width;
-                selectionRectangle.Height = height;
-
-                isSelectingArea = false;
-
-            }
+            
         }
 
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+       /* private void Canvas_MouseMove(object sender, MouseEventArgs e)
         {
             if (isSelectingArea && e.LeftButton == MouseButtonState.Pressed)
             {
@@ -184,11 +154,11 @@ namespace AlprGUI
                 selectionRectangle.Width = width;
                 selectionRectangle.Height = height;
             }
-        }
+        }*/
 
         private async Task StartCamera(string cameraName)
         {
-            var videoCaptureManager = VideoCaptureManager.Instance;
+          /*  var videoCaptureManager = VideoCaptureManager.Instance;
             await videoCaptureManager.StartProcessingAsync(cameraName, frame =>
             {
                 // Обработчик кадров
@@ -198,10 +168,10 @@ namespace AlprGUI
                     BitmapSource bitmapSource = ToBitmapSource(frame);
                     imageControl.Source = bitmapSource;
                 });
-            });
+            });*/
         }
 
-        private BitmapSource ToBitmapSource(Mat mat)
+        /*private BitmapSource ToBitmapSource(Mat mat)
         {
             using (var bitmap = mat.ToBitmap())
             {
@@ -214,7 +184,7 @@ namespace AlprGUI
                 bitmapSource.Freeze(); // Размораживаем изображение, чтобы его можно было использовать в разных потоках
                 return bitmapSource;
             }
-        }
+        }*/
 
         private void ShowSettingsContent()
         {

@@ -30,26 +30,30 @@ namespace AppDomain
         {
             if (!_captures.ContainsKey(cameraAddress))
             {
-                var videoCapture = new VideoCapture(cameraAddress);
-                if (!videoCapture.IsOpened)
+                await Task.Run(() =>
                 {
-                    throw new ArgumentException("Unable to open video source");
-                }
+                    var videoCapture = new VideoCapture(cameraAddress);
+                    if (!videoCapture.IsOpened)
+                    {
+                        throw new ArgumentException("Unable to open video source");
+                    }
 
-                _captures[cameraAddress] = videoCapture;
-                _frameHandlers[cameraAddress] = new List<Action<Mat>>();
-                _cancellationTokens[cameraAddress] = new CancellationTokenSource();
+                    lock (_lock)
+                    {
+                        _captures[cameraAddress] = videoCapture;
+                        _frameHandlers[cameraAddress] = new List<Action<Mat>>();
+                        _cancellationTokens[cameraAddress] = new CancellationTokenSource();
+                    }
 
-                // Start the capture task
-                var captureTask = Task.Run(() => CaptureFrames(cameraAddress, _cancellationTokens[cameraAddress].Token));
+                    // Start the capture task
+                    var captureTask = Task.Run(() => CaptureFrames(cameraAddress, _cancellationTokens[cameraAddress].Token));
+                });
             }
 
             lock (_lock)
             {
                 _frameHandlers[cameraAddress].Add(frameHandler);
             }
-
-            await Task.CompletedTask;
         }
 
         private async Task CaptureFrames(string cameraName, CancellationToken cancellationToken)

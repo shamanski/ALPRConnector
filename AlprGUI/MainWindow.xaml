@@ -23,7 +23,10 @@
         <!-- Side Menu -->
         <ListBox DockPanel.Dock="Left" Width="200" Background="#EEE" SelectionChanged="ListBox_SelectionChanged">
             <ListBoxItem>
-                <TextBlock Text="Home" Margin="10" Padding="5"/>
+                <TextBlock Text="Log" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
+                <TextBlock Text="Regions" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
                 <TextBlock Text="Settings" Margin="10" Padding="5"/>
