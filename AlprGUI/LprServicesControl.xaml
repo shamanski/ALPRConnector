@@ -1,0 +1,30 @@
+﻿<UserControl x:Class="AlprGUI.LprServicesControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:AlprGUI"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="350" d:DesignWidth="525">
+    <Grid>
+        <DataGrid x:Name="dataGrid" ItemsSource="{Binding LprReaders}" AutoGenerateColumns="False" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding LprReader.Name}" Width="*" />
+                <DataGridTextColumn Header="RS485Addr" Binding="{Binding LprReader.RS485Addr}" />
+                <DataGridTextColumn Header="ComPortPair" Binding="{Binding LprReader.ComPortPair.Name}" />
+                <DataGridTextColumn Header="Camera" Binding="{Binding LprReader.Camera.Name}" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="{Binding Status}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
+            <Button Content="Start" Margin="5" Click="StartButton_Click"/>
+            <Button Content="Stop" Margin="5" Click="StopButton_Click"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

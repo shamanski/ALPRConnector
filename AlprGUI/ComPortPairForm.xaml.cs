@@ -20,9 +20,8 @@ namespace AlprGUI
         {
             InitializeComponent();
             this.DataContext = Pair;
-            portsManager = new ComPortsManager();
+            portsManager = new ComPortsManager(new ModemEmulatorService());
             FreePorts = new ObservableCollection<string>();
-            //var ports = LoadPorts();
             senderComboBox.ItemsSource = portsManager.GetFreePorts();
             senderComboBox.SelectedIndex = 0;
             receiverComboBox.ItemsSource = portsManager.GetFreePorts();

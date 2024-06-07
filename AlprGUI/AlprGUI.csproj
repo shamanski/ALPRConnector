@@ -24,7 +24,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="openalpr-net">
+      <HintPath>..\MlNetOnnxAlpr.OpenAlprClient\Dependencies\openalpr-net.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Update="ComPortPairForm.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="LprServicesControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="LprReaderControl.xaml.cs">

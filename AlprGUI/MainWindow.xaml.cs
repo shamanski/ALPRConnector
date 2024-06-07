@@ -73,6 +73,9 @@ namespace AlprGUI
                         case "LPR Readers":
                             ShowLprReadersContent();
                             break;
+                        case "Run service":
+                            ShowLprServicesContent();
+                            break;
                         default:
                             break;
                     }
@@ -208,6 +211,13 @@ namespace AlprGUI
             var comPortsControl = new ComPortsControl();
             MainContent.Children.Clear();
             MainContent.Children.Add(comPortsControl);
+        }
+
+        private void ShowLprServicesContent()
+        {
+            var lprServicesControl = new LprServicesControl();
+            MainContent.Children.Clear();
+            MainContent.Children.Add(lprServicesControl);
         }
     }
 }

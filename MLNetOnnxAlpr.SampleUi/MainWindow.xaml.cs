@@ -14,7 +14,7 @@ using MLNetOnnxAlpr.OnnxObjectDetection;
 using MLNetOnnxAlpr.OnnxObjectDetection.ML;
 using MLNetOnnxAlpr.OnnxObjectDetection.ML.DataModels;
 using MlNetOnnxAlpr.OpenAlprClient;
-using MLNetOnnxAlpr.SampleUi.Models;
+
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using Window = System.Windows.Window;

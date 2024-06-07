@@ -2,17 +2,12 @@
 using Emgu.CV;
 using F23.StringSimilarity;
 using openalprnet;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AppDomain.Abstractions;
 
-namespace ConsoleApp1
+namespace AppDomain
 {
-    public class OpenAlprClient : IAlprClient
+    public class OpenAlprService : IAlprClient
     {
         private readonly AlprNet _alprNet;
         private readonly ConcurrentQueue<string> _plates;
@@ -21,7 +16,7 @@ namespace ConsoleApp1
         private readonly object _frameLock = new object();
         private CancellationTokenSource _cancellationTokenSource;
 
-        public OpenAlprClient()
+        public OpenAlprService()
         {
             _alprNet = new AlprNet("eu", string.Empty, string.Empty)
             {
@@ -67,7 +62,7 @@ namespace ConsoleApp1
                         _lastFrame = frame;
                     }
 
-                    Task.Delay(10).Wait(); // Adjust delay to control frame capture rate
+                    Task.Delay(10).Wait();
                 }
             }, cancellationToken);
 
@@ -147,7 +142,7 @@ namespace ConsoleApp1
 
         private string AggregatePlates(List<string> plates)
         {
-            if (plates.Count < 4) return "No plates detected";
+            if (plates.Count < 4) return "EMPTY";
 
             var plateGroups = new Dictionary<string, int>();
             foreach (var plate in plates)
@@ -179,6 +174,28 @@ namespace ConsoleApp1
             }
 
             return mostCommonPlate;
+        }
+
+        public async Task<VideoCapture> CreateVideoCaptureAsync(string connection, CancellationToken cancellationToken)
+        {
+            return await Task.Run(async () =>
+            {
+                VideoCapture videoCapture = null;
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    videoCapture = new VideoCapture(connection);
+                    if (videoCapture.IsOpened)
+                    {
+                        return videoCapture;
+                    }
+                    else
+                    {
+                        videoCapture.Dispose();
+                        await Task.Delay(1000, cancellationToken);
+                    }
+                }
+                throw new ArgumentException("Unable to open video source");
+            }, cancellationToken);
         }
     }
 }

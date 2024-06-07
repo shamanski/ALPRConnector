@@ -52,7 +52,7 @@ namespace AppDomain
         public string GetConnectionString(Camera camera)
         {
            var prefix = (String.IsNullOrEmpty(camera.Login) || String.IsNullOrEmpty(camera.Password)) ? String.Empty : String.Concat(camera.Login, ":", camera.Password, "@");
-           return String.Concat(@"rtsp://", prefix, camera.IpAddress);
+           return String.Concat(@"rtsp://", prefix, camera.IpAddress, ":", camera.IpPort);
         }
     }
 }

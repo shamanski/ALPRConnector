@@ -25,7 +25,7 @@ namespace AlprGUI
         {
             InitializeComponent();
             readerManager = new LprReaderManager();
-            portsManager = new ComPortsManager();
+            portsManager = new ComPortsManager(new ModemEmulatorService());
             cameraManager = new CameraManager();
             ComPortPairs = new ObservableCollection<ComPortPair>(portsManager.GetAll());
             Cameras = new ObservableCollection<Camera>(cameraManager.GetAll());

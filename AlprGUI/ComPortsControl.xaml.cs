@@ -18,7 +18,7 @@ namespace AlprGUI
         public ComPortsControl()
         {
             InitializeComponent();
-            comPortManager = new ComPortsManager();
+            comPortManager = new ComPortsManager(new ModemEmulatorService());
             Pairs = new ObservableCollection<ComPortPair>();
             ComPortsList.ItemsSource = Pairs;
             appSettings = ConfigurationLoader.LoadSettings();
@@ -50,7 +50,7 @@ namespace AlprGUI
             }
         }
 
-        private void SavePairButton_Click(object sender, ComPortPairEventArgs e)
+        private async void SavePairButton_Click(object sender, ComPortPairEventArgs e)
         {
             if (sender is ComPortPairForm comForm)
             {
@@ -62,7 +62,7 @@ namespace AlprGUI
                 PairFieldsStackPanel.Children.Remove(comForm);
                 try
                 {
-                    comPortManager.AddPair(e.Pair);
+                    await comPortManager.AddPair(e.Pair);
                 }
                 catch (Exception ex)
                 {

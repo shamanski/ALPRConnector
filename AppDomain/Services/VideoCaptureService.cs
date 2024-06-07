@@ -14,17 +14,17 @@ namespace AppDomain
     using Emgu.CV.CvEnum;
     using static System.Net.Mime.MediaTypeNames;
 
-    public class VideoCaptureManager
+    public class VideoCaptureService
     {
-        private static readonly Lazy<VideoCaptureManager> _instance = new Lazy<VideoCaptureManager>(() => new VideoCaptureManager());
-        public static VideoCaptureManager Instance => _instance.Value;
+        private static readonly Lazy<VideoCaptureService> _instance = new Lazy<VideoCaptureService>(() => new VideoCaptureService());
+        public static VideoCaptureService Instance => _instance.Value;
 
         private readonly ConcurrentDictionary<string, VideoCapture> _captures = new ConcurrentDictionary<string, VideoCapture>();
         private readonly ConcurrentDictionary<string, List<Action<Mat>>> _frameHandlers = new ConcurrentDictionary<string, List<Action<Mat>>>();
         private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokens = new ConcurrentDictionary<string, CancellationTokenSource>();
         private readonly object _lock = new object();
 
-        private VideoCaptureManager() { }
+        private VideoCaptureService() { }
 
         public async Task StartProcessingAsync(string cameraAddress, Action<Mat> frameHandler)
         {

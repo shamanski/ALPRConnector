@@ -38,6 +38,9 @@
                 <TextBlock Text="LPR Readers" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
+                <TextBlock Text="Run service" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
                 <TextBlock Text="About" Margin="10" Padding="5"/>
             </ListBoxItem>
         </ListBox>

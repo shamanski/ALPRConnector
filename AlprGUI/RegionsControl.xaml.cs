@@ -13,7 +13,7 @@ namespace AlprGUI
 {
     public partial class RegionsControl : UserControl
     {
-        private readonly VideoCaptureManager videoCaptureManager;
+        private readonly VideoCaptureService videoCaptureManager;
         private readonly CameraManager cameraManager;
         private Point startPoint;
         private Rectangle selectionRectangle;
@@ -40,7 +40,7 @@ namespace AlprGUI
         {
             try
             {
-                var videoCaptureManager = VideoCaptureManager.Instance;
+                var videoCaptureManager = VideoCaptureService.Instance;
                 await videoCaptureManager.StartProcessingAsync(connection, frame =>
                 {
                     Dispatcher.Invoke(() =>

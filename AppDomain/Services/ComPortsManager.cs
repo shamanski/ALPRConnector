@@ -12,13 +12,15 @@ namespace AppDomain
     public class ComPortsManager
     {
         private readonly AppSettings _settings;
+        private ModemEmulatorService _emulatorService;
 
-        public ComPortsManager()
+        public ComPortsManager(ModemEmulatorService emulatorService)
         {
             _settings = ConfigurationLoader.LoadSettings();
+            this._emulatorService = emulatorService;
         }
 
-        public void AddPair(ComPortPair portPair)
+        public async Task AddPair(ComPortPair portPair)
         {
             if (portPair.Sender == portPair.Receiver)
             {
@@ -32,11 +34,11 @@ namespace AppDomain
             {
                 throw new ArgumentException($"Port pair already exists!");
             }
-            else
-            {
-                _settings.ComPortPairs.Add(portPair);
-                ConfigurationLoader.SaveSettings(_settings);
-            }           
+
+            await _emulatorService.AddPair(portPair);
+            _settings.ComPortPairs.Add(portPair);
+            ConfigurationLoader.SaveSettings(_settings);
+         
         }
 
         public void RemovePair(string name)
