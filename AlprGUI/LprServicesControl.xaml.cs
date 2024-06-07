@@ -12,19 +12,16 @@ namespace AlprGUI
 {
     public partial class LprServicesControl : UserControl
     {
-        private readonly CameraRepository cameraManager;
         private LprReadersViewModel _viewModel;
         private readonly LprReaderRepository readerManager;
-        private readonly OpenAlprService alprClient;
         public ObservableCollection<LprReaderViewModel> Readers { get; set; }
         private Dictionary<object, CancellationTokenSource> _cancellationTokenSources = new Dictionary<object, CancellationTokenSource>();
+        private readonly Dictionary<LprReaderViewModel, PortAdapter> _portAdapters = new Dictionary<LprReaderViewModel, PortAdapter>();
 
         public LprServicesControl()
         {
             InitializeComponent();
-            cameraManager = new CameraRepository();
             readerManager = new LprReaderRepository();
-            alprClient = new OpenAlprService();
             Readers = new ObservableCollection<LprReaderViewModel>();
             LoadReaders();
             _viewModel = new LprReadersViewModel();
@@ -52,20 +49,11 @@ namespace AlprGUI
 
                 try
                 {
-                    var connection = cameraManager.GetConnectionString(selectedReader.LprReader.Camera);
-                    var comPortService = new ComPortService(selectedReader.LprReader.ComPortPair.Sender, selectedReader.LprReader.RS485Addr);
+                    var comPortService = new ComPortService();
+                    var portAdapter = new PortAdapter(comPortService, selectedReader.LprReader);
+                    _portAdapters[selectedReader] = portAdapter;
 
-                    var videoCapture = await alprClient.CreateVideoCaptureAsync(connection, cancellationTokenSource.Token);
-
-                    await alprClient.StartProcessingAsync(videoCapture, result =>
-                    {
-                        Dispatcher.Invoke(() =>
-                        {
-                            selectedReader.Status = $"Running - Last plate: {result}";
-                            comPortService.SendLpAsync(result);
-                        });
-                    }, cancellationTokenSource.Token);
-
+                    await portAdapter.Run();
                     selectedReader.Status = "Running";
                 }
                 catch (Exception ex)
@@ -77,13 +65,19 @@ namespace AlprGUI
 
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
-            if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
+            if (dataGrid.SelectedItem is LprReaderViewModel selectedReader &&
+                _cancellationTokenSources.TryGetValue(selectedReader, out var cancellationTokenSource))
             {
-                if (_cancellationTokenSources.TryGetValue(selectedReader, out var cancellationTokenSource))
+                cancellationTokenSource.Cancel();
+                _cancellationTokenSources.Remove(selectedReader);
+
+                if (_portAdapters.TryGetValue(selectedReader, out var portAdapter))
                 {
-                    cancellationTokenSource.Cancel();
-                    selectedReader.Status = "Stopped";
+                    portAdapter.Dispose();
+                    _portAdapters.Remove(selectedReader);
                 }
+
+                selectedReader.Status = "Stopped";
             }
         }
     }

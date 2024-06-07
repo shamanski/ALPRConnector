@@ -4,5 +4,5 @@ using System.Threading.Tasks;
 
 public interface IComPortService
 {
-    Task SendLpAsync(string data);
+    Task SendLpAsync(string ComPortName, int RS485Addr, string data);
 }

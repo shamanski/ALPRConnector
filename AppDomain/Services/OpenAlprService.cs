@@ -4,6 +4,7 @@ using F23.StringSimilarity;
 using openalprnet;
 using System.Collections.Concurrent;
 using AppDomain.Abstractions;
+using Serilog;
 
 namespace AppDomain
 {
@@ -166,13 +167,7 @@ namespace AppDomain
             }
 
             var mostCommonPlate = plateGroups.OrderByDescending(p => p.Value).First().Key;
-
-            Console.WriteLine("Plate groups:");
-            foreach (var group in plateGroups)
-            {
-                Console.WriteLine($"{group.Key}: {group.Value}");
-            }
-
+            Log.Information($"Detected: {mostCommonPlate}");
             return mostCommonPlate;
         }
 
@@ -190,8 +185,9 @@ namespace AppDomain
                     }
                     else
                     {
+                        Log.Error($"Error connecting to {connection}. Trying again");
                         videoCapture.Dispose();
-                        await Task.Delay(1000, cancellationToken);
+                        await Task.Delay(100, cancellationToken);
                     }
                 }
                 throw new ArgumentException("Unable to open video source");

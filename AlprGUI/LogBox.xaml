@@ -1,0 +1,10 @@
+﻿<UserControl x:Class="AlprGUI.LogBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:AlprGUI"
+             >
+    <Grid>
+        <RichTextBox x:Name="LogRichTextBox" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                     IsReadOnly="True" Background="Black" Foreground="White"/>
+    </Grid>
+</UserControl>

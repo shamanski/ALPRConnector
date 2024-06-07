@@ -45,7 +45,6 @@ namespace AppDomain
                         _cancellationTokens[cameraAddress] = new CancellationTokenSource();
                     }
 
-                    // Start the capture task
                     var captureTask = Task.Run(() => CaptureFrames(cameraAddress, _cancellationTokens[cameraAddress].Token));
                 });
             }

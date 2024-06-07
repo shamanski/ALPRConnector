@@ -8,11 +8,10 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Interop;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using Serilog;
+using Serilog.Sinks.RichTextBox;
+using System.Reflection.Emit;
+using Serilog.Sinks.RichTextBox.Themes;
 
 namespace AlprGUI
 {
@@ -22,11 +21,6 @@ namespace AlprGUI
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private string _statusMessage;
-        //private bool isSelectingArea = false;
-        //private Point startPoint;
-        //private Rectangle selectionRectangle;
-       // private VideoCaptureManager videoCaptureManager;
-       // private Image imageControl;
 
         public string StatusMessage
         {
@@ -38,11 +32,19 @@ namespace AlprGUI
             }
         }
 
+        private readonly LogBox logControl;
+
         public MainWindow()
         {
             InitializeComponent();            
             DataContext = this;
             StatusMessage = "Application Started";
+            logControl = new LogBox();
+            var loggerConfig = new LoggerConfiguration()
+   .WriteTo.RichTextBox(logControl.LogRichTextBox, theme: RichTextBoxConsoleTheme.Colored);
+            var logger = loggerConfig.CreateLogger();
+            Log.Logger = logger;
+            Log.Information("Application started");
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -76,11 +78,20 @@ namespace AlprGUI
                         case "Run service":
                             ShowLprServicesContent();
                             break;
+                        case "Log":
+                            ShowLogContent();
+                            break;
                         default:
                             break;
                     }
                 }
             }
+        }
+
+        private void ShowLogContent()
+        {
+            MainContent.Children.Clear();
+            MainContent.Children.Add(logControl);
         }
 
         private void ShowLprReadersContent()
@@ -95,109 +106,17 @@ namespace AlprGUI
             var regionsControl = new RegionsControl();
             MainContent.Children.Clear();
             MainContent.Children.Add(regionsControl);
-          /*  MainContent.Children.Clear();
-
-            var grid = new Grid();
-
-            var rowDefinition1 = new RowDefinition();
-            var rowDefinition2 = new RowDefinition();
-            rowDefinition1.Height = new GridLength(1, GridUnitType.Star); 
-            rowDefinition2.Height = GridLength.Auto; 
-            grid.RowDefinitions.Add(rowDefinition1);
-            grid.RowDefinitions.Add(rowDefinition2);
-            canvas = new Canvas();
-            imageControl = new Image();
-            imageControl.Stretch = Stretch.Uniform;
-            await StartCamera("default");
-            canvas.Children.Add(imageControl);
-            canvas.MouseDown += Canvas_MouseDown;
-            canvas.MouseMove += Canvas_MouseMove;
-            grid.Children.Add(canvas);
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Bottom,
-                Margin = new Thickness(0, 10, 0, 10)
-            };
-
-            var selectAreaButton = new Button
-            {
-                Content = "Select LPR area",
-                Margin = new Thickness(5)
-            };
-            selectAreaButton.Click += SelectAreaButton_Click;
-            buttonPanel.Children.Add(selectAreaButton);
-
-            var otherButton1 = new Button
-            {
-                Content = "Button 1",
-                Margin = new Thickness(5)
-            };
-            buttonPanel.Children.Add(otherButton1);
-
-            Grid.SetRow(buttonPanel, 1);
-            grid.Children.Add(buttonPanel);
-
-            MainContent.Children.Add(grid);*/
         }
-
-       /* private void SelectAreaButton_Click(object sender, RoutedEventArgs e)
-        {
-            isSelectingArea = true;
-        }*/
 
         private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
             
-        }
-
-       /* private void Canvas_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (isSelectingArea && e.LeftButton == MouseButtonState.Pressed)
-            {
-                Point currentPoint = e.GetPosition(canvas); 
-                double left = Math.Min(startPoint.X, currentPoint.X);
-                double top = Math.Min(startPoint.Y, currentPoint.Y);
-                double width = Math.Abs(startPoint.X - currentPoint.X);
-                double height = Math.Abs(startPoint.Y - currentPoint.Y);
-
-                Canvas.SetLeft(selectionRectangle, left);
-                Canvas.SetTop(selectionRectangle, top);
-                selectionRectangle.Width = width;
-                selectionRectangle.Height = height;
-            }
-        }*/
+        }     
 
         private async Task StartCamera(string cameraName)
         {
-          /*  var videoCaptureManager = VideoCaptureManager.Instance;
-            await videoCaptureManager.StartProcessingAsync(cameraName, frame =>
-            {
-                // Обработчик кадров
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    // Обновление интерфейса
-                    BitmapSource bitmapSource = ToBitmapSource(frame);
-                    imageControl.Source = bitmapSource;
-                });
-            });*/
-        }
 
-        /*private BitmapSource ToBitmapSource(Mat mat)
-        {
-            using (var bitmap = mat.ToBitmap())
-            {
-                IntPtr hBitmap = bitmap.GetHbitmap();
-                BitmapSource bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
-                    hBitmap,
-                    IntPtr.Zero,
-                    Int32Rect.Empty,
-                    BitmapSizeOptions.FromEmptyOptions());
-                bitmapSource.Freeze(); // Размораживаем изображение, чтобы его можно было использовать в разных потоках
-                return bitmapSource;
-            }
-        }*/
+        }
 
         private void ShowSettingsContent()
         {

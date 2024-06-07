@@ -1,85 +1,61 @@
-﻿using Microsoft.VisualBasic;
+﻿using Serilog;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO.Ports;
-using System.Text;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class ComPortService : IComPortService
+public class ComPortService : IDisposable
 {
-    private readonly SerialPort _serialPort;
-    private readonly int _cardAddr;
-    byte caH, caL, caC;
+    private readonly ConcurrentDictionary<string, (SerialPort port, SemaphoreSlim semaphore)> _ports;
+    private readonly ConcurrentDictionary<int, string> _rs485Addresses;
 
-    public ComPortService(string portName, int RS485Addr)
+    public ComPortService()
     {
-        _serialPort = new SerialPort(portName, 19200, Parity.Even, 8, StopBits.One)
-        {
-            Handshake = Handshake.None,
-            RtsEnable = true,
-            DtrEnable = true,
-            ReadTimeout = 100
-        };
-        _cardAddr = RS485Addr;
-        _serialPort.Open();
-       // _serialPort.DataReceived += new SerialDataReceivedEventHandler(port_DataReceived);
-
-        caH = (byte)((_cardAddr / 0x40) + 0xC0);
-        caL = (byte)((_cardAddr % 0x40) + 0x80);
-        caC = (byte)(((caH ^ caL) ^ 0xFF) % 0x40);
-
-        if (_cardAddr < 0)
-        {
-            caH = 0x00;
-            caL = (byte)((_cardAddr % 0x40) + 0x80);
-            caC = (byte)((caL ^ 0xFF) % 0x40);
-        }
+        _ports = new ConcurrentDictionary<string, (SerialPort, SemaphoreSlim)>();
+        _rs485Addresses = new ConcurrentDictionary<int, string>();
     }
 
-    public async Task SendLpAsync(string lp)
+    public async Task SendLpAsync(string portName, int rs485Address, string lp)
     {
-        if (!_serialPort.IsOpen)
+        if (!_ports.ContainsKey(portName))
         {
-            _serialPort.Open();
-        }
-  
-        Task.Delay(10);
-        byte[] odpyt_addr_h = new byte[1];
-        byte[] odpyt_addr_l = new byte[1];
-        byte[] odpyt_chksum = new byte[1];
-        bool odpyt_addr_recognized = false;
-
-        if (caH != 0x00)
-        {
-            _serialPort.Read(odpyt_addr_h, 0, 1);
-            if (odpyt_addr_h[0] == caH)
+            var serialPort = new SerialPort(portName, 19200, Parity.Even, 8, StopBits.One)
             {
-                _serialPort.Read(odpyt_addr_l, 0, 1);
-                if (odpyt_addr_l[0] == caL)
-                {
-                    _serialPort.Read(odpyt_chksum, 0, 1);
-                    if (odpyt_chksum[0] == caC)
-                    {
-                        odpyt_addr_recognized = true;
-                    }
-                }
-            }
-        }
-        else
-        {
-            _serialPort.Read(odpyt_addr_l, 0, 1);
-            if (odpyt_addr_l[0] == caL)
-            {
-                _serialPort.Read(odpyt_chksum, 0, 1);
-                if (odpyt_chksum[0] == caC)
-                {
-                    odpyt_addr_recognized = true;
-                }
-            }
+                Handshake = Handshake.None,
+                RtsEnable = true,
+                DtrEnable = true,
+                ReadTimeout = 100
+            };
+            serialPort.Open();
+            _ports[portName] = (serialPort, new SemaphoreSlim(1, 1));
+            Log.Information($"COM port {portName} opened");
         }
 
-        if (odpyt_addr_recognized)
+        if (!_rs485Addresses.ContainsKey(rs485Address))
         {
+            _rs485Addresses[rs485Address] = portName;
+            Log.Information($"Connected to {portName} with RS485 device {rs485Address}");
+        }
+
+        var (port, semaphore) = _ports[portName];
+
+        await semaphore.WaitAsync();
+        try
+        {
+            byte caH = (byte)((rs485Address / 0x40) + 0xC0);
+            byte caL = (byte)((rs485Address % 0x40) + 0x80);
+            byte caC = (byte)(((caH ^ caL) ^ 0xFF) % 0x40);
+
+            if (rs485Address < 0)
+            {
+                caH = 0x00;
+                caL = (byte)((rs485Address % 0x40) + 0x80);
+                caC = (byte)((caL ^ 0xFF) % 0x40);
+            }
+
             List<byte> answ = new List<byte> { 0x40 };
             foreach (char ch in lp)
             {
@@ -105,22 +81,40 @@ public class ComPortService : IComPortService
             }
 
             answ.Add((byte)(chksum % 0x40));
-            _serialPort.BaseStream.Flush();
-            await _serialPort.BaseStream.WriteAsync(answ.ToArray(), 0, answ.Count);
-            Console.WriteLine($"Sent: {BitConverter.ToString(answ.ToArray())}");
+            port.BaseStream.Flush();
+            await port.BaseStream.WriteAsync(answ.ToArray(), 0, answ.Count);
+        }
+        finally
+        {
+            semaphore.Release();
         }
     }
 
-
-    private void port_DataReceived(object sender, SerialDataReceivedEventArgs e)
+    public void RemoveRS485Address(int rs485Address)
     {
-        SerialPort sp = (SerialPort)sender;
-        int bytesToRead = sp.BytesToRead;
-        byte[] buffer = new byte[bytesToRead];
-        sp.Read(buffer, 0, bytesToRead);
-        string receivedData = Encoding.ASCII.GetString(buffer);
-        Console.WriteLine($"Received: {receivedData}");
+        if (_rs485Addresses.TryRemove(rs485Address, out var portName))
+        {
+            if (_ports.ContainsKey(portName))
+            {
+                var (port, semaphore) = _ports[portName];
+                if (_rs485Addresses.Values.Count(v => v == portName) == 0)
+                {
+                    port.Close();
+                    semaphore.Dispose();
+                    _ports.TryRemove(portName, out _);
+                }
+            }
+        }
     }
 
+    public void Dispose()
+    {
+        foreach (var (port, semaphore) in _ports.Values)
+        {
+            port.Close();
+            semaphore.Dispose();
+        }
+        _ports.Clear();
+        _rs485Addresses.Clear();
+    }
 }
-

@@ -1,5 +1,6 @@
 ﻿using AppDomain;
 using Hsu.NullModemEmulator;
+using Serilog;
 
 namespace AppDomain
 {
@@ -27,7 +28,7 @@ namespace AppDomain
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString() );
+                Log.Error($"Error adding COM port pair: {ex.Message}");
             }
             
         }
