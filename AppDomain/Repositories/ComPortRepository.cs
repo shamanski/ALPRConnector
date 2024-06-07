@@ -9,12 +9,12 @@ using System.IO.Ports;
 
 namespace AppDomain
 {
-    public class ComPortsManager
+    public class ComPortRepository
     {
         private readonly AppSettings _settings;
         private ModemEmulatorService _emulatorService;
 
-        public ComPortsManager(ModemEmulatorService emulatorService)
+        public ComPortRepository(ModemEmulatorService emulatorService)
         {
             _settings = ConfigurationLoader.LoadSettings();
             this._emulatorService = emulatorService;

@@ -9,7 +9,7 @@ namespace AlprGUI
 {
     public partial class LprReadersControl : UserControl
     {
-        private readonly LprReaderManager lprReaderManager;
+        private readonly LprReaderRepository lprReaderManager;
 
         public ObservableCollection<LprReader> LprReaders { get; set; }
         private AppSettings appSettings { get; set; }
@@ -17,7 +17,7 @@ namespace AlprGUI
         public LprReadersControl()
         {
             InitializeComponent();
-            lprReaderManager = new LprReaderManager();
+            lprReaderManager = new LprReaderRepository();
             LprReaders = new ObservableCollection<LprReader>();
             LprReadersList.ItemsSource = LprReaders;
             appSettings = ConfigurationLoader.LoadSettings();

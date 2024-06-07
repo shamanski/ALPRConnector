@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace AppDomain
 {
-    public class LprReaderManager
+    public class LprReaderRepository
     {
         private readonly AppSettings _settings;
 
-        public LprReaderManager()
+        public LprReaderRepository()
         {
             _settings = ConfigurationLoader.LoadSettings();
         }

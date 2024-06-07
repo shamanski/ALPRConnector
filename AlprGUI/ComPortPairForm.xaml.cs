@@ -13,14 +13,14 @@ namespace AlprGUI
         public event EventHandler<ComPortPairEventArgs> SaveClicked;
         public event EventHandler CancelClicked;
         public ComPortPair Pair { get; set; }
-        private readonly ComPortsManager portsManager;
+        private readonly ComPortRepository portsManager;
         public ObservableCollection<string> FreePorts { get; set; }
 
         public ComPortPairForm()
         {
             InitializeComponent();
             this.DataContext = Pair;
-            portsManager = new ComPortsManager(new ModemEmulatorService());
+            portsManager = new ComPortRepository(new ModemEmulatorService());
             FreePorts = new ObservableCollection<string>();
             senderComboBox.ItemsSource = portsManager.GetFreePorts();
             senderComboBox.SelectedIndex = 0;

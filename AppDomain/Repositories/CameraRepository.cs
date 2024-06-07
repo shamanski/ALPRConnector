@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace AppDomain
 {
-    public class CameraManager
+    public class CameraRepository
     {
         private readonly AppSettings _settings;
 
-        public CameraManager()
+        public CameraRepository()
         {
             _settings = ConfigurationLoader.LoadSettings();
         }

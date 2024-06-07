@@ -14,9 +14,9 @@ namespace AlprGUI
         public event EventHandler<LprReaderEventArgs> SaveClicked;
         public event EventHandler CancelClicked;
         public LprReader Reader { get; set; }
-        private readonly LprReaderManager readerManager;
-        private readonly ComPortsManager portsManager;
-        private readonly CameraManager cameraManager;
+        private readonly LprReaderRepository readerManager;
+        private readonly ComPortRepository portsManager;
+        private readonly CameraRepository cameraManager;
 
         public ObservableCollection<ComPortPair> ComPortPairs { get; set; }
         public ObservableCollection<Camera> Cameras { get; set; }
@@ -24,9 +24,9 @@ namespace AlprGUI
         public LprReaderForm()
         {
             InitializeComponent();
-            readerManager = new LprReaderManager();
-            portsManager = new ComPortsManager(new ModemEmulatorService());
-            cameraManager = new CameraManager();
+            readerManager = new LprReaderRepository();
+            portsManager = new ComPortRepository(new ModemEmulatorService());
+            cameraManager = new CameraRepository();
             ComPortPairs = new ObservableCollection<ComPortPair>(portsManager.GetAll());
             Cameras = new ObservableCollection<Camera>(cameraManager.GetAll());
 

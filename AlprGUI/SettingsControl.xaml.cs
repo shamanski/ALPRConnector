@@ -10,7 +10,7 @@ namespace AlprGUI
 {
     public partial class SettingsControl : UserControl
     {
-        private readonly CameraManager cameraManager;
+        private readonly CameraRepository cameraManager;
 
         public ObservableCollection<Camera> Cameras { get; set; }
         private AppSettings appSettings { get; set; }
@@ -18,7 +18,7 @@ namespace AlprGUI
         public SettingsControl()
         {
             InitializeComponent();
-            cameraManager = new CameraManager();
+            cameraManager = new CameraRepository();
             Cameras = new ObservableCollection<Camera>();
             CamerasList.ItemsSource = Cameras;
             appSettings = ConfigurationLoader.LoadSettings();

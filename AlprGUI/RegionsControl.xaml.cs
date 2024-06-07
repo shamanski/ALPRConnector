@@ -14,7 +14,7 @@ namespace AlprGUI
     public partial class RegionsControl : UserControl
     {
         private readonly VideoCaptureService videoCaptureManager;
-        private readonly CameraManager cameraManager;
+        private readonly CameraRepository cameraManager;
         private Point startPoint;
         private Rectangle selectionRectangle;
         private bool isSelectingArea = false;
@@ -23,7 +23,7 @@ namespace AlprGUI
         {
             InitializeComponent();
  
-            cameraManager = new CameraManager();
+            cameraManager = new CameraRepository();
             cameraComboBox.ItemsSource = cameraManager.GetAll();
         }
 

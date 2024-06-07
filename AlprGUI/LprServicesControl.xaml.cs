@@ -12,9 +12,9 @@ namespace AlprGUI
 {
     public partial class LprServicesControl : UserControl
     {
-        private readonly CameraManager cameraManager;
+        private readonly CameraRepository cameraManager;
         private LprReadersViewModel _viewModel;
-        private readonly LprReaderManager readerManager;
+        private readonly LprReaderRepository readerManager;
         private readonly OpenAlprService alprClient;
         public ObservableCollection<LprReaderViewModel> Readers { get; set; }
         private Dictionary<object, CancellationTokenSource> _cancellationTokenSources = new Dictionary<object, CancellationTokenSource>();
@@ -22,8 +22,8 @@ namespace AlprGUI
         public LprServicesControl()
         {
             InitializeComponent();
-            cameraManager = new CameraManager();
-            readerManager = new LprReaderManager();
+            cameraManager = new CameraRepository();
+            readerManager = new LprReaderRepository();
             alprClient = new OpenAlprService();
             Readers = new ObservableCollection<LprReaderViewModel>();
             LoadReaders();

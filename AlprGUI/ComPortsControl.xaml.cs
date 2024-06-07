@@ -10,7 +10,7 @@ namespace AlprGUI
 {
     public partial class ComPortsControl : UserControl
     {
-        private readonly ComPortsManager comPortManager;
+        private readonly ComPortRepository comPortManager;
 
         public ObservableCollection<ComPortPair> Pairs { get; set; }
         private AppSettings appSettings { get; set; }
@@ -18,7 +18,7 @@ namespace AlprGUI
         public ComPortsControl()
         {
             InitializeComponent();
-            comPortManager = new ComPortsManager(new ModemEmulatorService());
+            comPortManager = new ComPortRepository(new ModemEmulatorService());
             Pairs = new ObservableCollection<ComPortPair>();
             ComPortsList.ItemsSource = Pairs;
             appSettings = ConfigurationLoader.LoadSettings();
