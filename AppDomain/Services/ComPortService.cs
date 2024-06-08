@@ -16,6 +16,7 @@ public class ComPortService : IDisposable
     {
         _ports = new ConcurrentDictionary<string, (SerialPort, SemaphoreSlim)>();
         _rs485Addresses = new ConcurrentDictionary<int, string>();
+        Log.Information("COM port service started");
     }
 
     public async Task SendLpAsync(string portName, int rs485Address, string lp)

@@ -1,84 +1,71 @@
 ﻿using AppDomain;
-using System;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using Emgu.CV;
-using openalprnet;
-using System.Threading;
+using System.Windows;
 
-namespace AlprGUI
+namespace AlprGUI;
+
+public partial class LprServicesControl : UserControl
 {
-    public partial class LprServicesControl : UserControl
+    private readonly LprReaderRepository readerManager;
+    private LprReadersViewModel _viewModel;
+    private readonly PortAdapterManager _portAdapterManager = PortAdapterManager.Instance;
+
+    public ObservableCollection<LprReaderViewModel> Readers { get; } = new ObservableCollection<LprReaderViewModel>();
+
+    public LprServicesControl()
     {
-        private LprReadersViewModel _viewModel;
-        private readonly LprReaderRepository readerManager;
-        public ObservableCollection<LprReaderViewModel> Readers { get; set; }
-        private Dictionary<object, CancellationTokenSource> _cancellationTokenSources = new Dictionary<object, CancellationTokenSource>();
-        private readonly Dictionary<LprReaderViewModel, PortAdapter> _portAdapters = new Dictionary<LprReaderViewModel, PortAdapter>();
+        InitializeComponent();
+        readerManager = new LprReaderRepository();
+        LoadReaders();
+        _viewModel = new LprReadersViewModel();
+        _viewModel.LprReaders = Readers;
+        this.DataContext = _viewModel;
+    }
 
-        public LprServicesControl()
+    private void LoadReaders()
+    {
+        var readers = readerManager.GetAll();
+        foreach (var reader in readers)
         {
-            InitializeComponent();
-            readerManager = new LprReaderRepository();
-            Readers = new ObservableCollection<LprReaderViewModel>();
-            LoadReaders();
-            _viewModel = new LprReadersViewModel();
-            _viewModel.LprReaders = Readers;
-            this.DataContext = _viewModel;
-        }
+            var readerViewModel = new LprReaderViewModel(reader);
+            readerViewModel.Status = PortAdapterManager.Instance.GetAdapterStatus(reader);
+            Readers.Add(readerViewModel);
 
-        private void LoadReaders()
-        {
-            var readers = readerManager.GetAll();
-            foreach (var reader in readers)
+            PortAdapterManager.Instance.AdapterStatusChanged += (sender, args) =>
             {
-                Readers.Add(new LprReaderViewModel(reader));
+                if (args.Reader == reader)
+                {
+                    readerViewModel.Status = args.Status;
+                }
+            };
+        }
+    }
+
+    private async void StartButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
+        {
+           // selectedReader.Status = "Starting...";
+
+            try
+            {
+                await _portAdapterManager.StartAdapterAsync(selectedReader.LprReader);
+                selectedReader.Status = "Running";
+            }
+            catch (Exception ex)
+            {
+                selectedReader.Status = $"Error: {ex.Message}";
             }
         }
+    }
 
-        private async void StartButton_Click(object sender, RoutedEventArgs e)
+    private void StopButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
         {
-            if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
-            {
-                var cancellationTokenSource = new CancellationTokenSource();
-                _cancellationTokenSources[selectedReader] = cancellationTokenSource;
-
-                selectedReader.Status = "Starting...";
-
-                try
-                {
-                    var comPortService = new ComPortService();
-                    var portAdapter = new PortAdapter(comPortService, selectedReader.LprReader);
-                    _portAdapters[selectedReader] = portAdapter;
-
-                    await portAdapter.Run();
-                    selectedReader.Status = "Running";
-                }
-                catch (Exception ex)
-                {
-                    selectedReader.Status = $"Error: {ex.Message}";
-                }
-            }
-        }
-
-        private void StopButton_Click(object sender, RoutedEventArgs e)
-        {
-            if (dataGrid.SelectedItem is LprReaderViewModel selectedReader &&
-                _cancellationTokenSources.TryGetValue(selectedReader, out var cancellationTokenSource))
-            {
-                cancellationTokenSource.Cancel();
-                _cancellationTokenSources.Remove(selectedReader);
-
-                if (_portAdapters.TryGetValue(selectedReader, out var portAdapter))
-                {
-                    portAdapter.Dispose();
-                    _portAdapters.Remove(selectedReader);
-                }
-
-                selectedReader.Status = "Stopped";
-            }
+            _portAdapterManager.StopAdapter(selectedReader.LprReader);
+           // selectedReader.Status = "Stopped";
         }
     }
 }

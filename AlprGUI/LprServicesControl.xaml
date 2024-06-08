@@ -27,4 +27,7 @@
             <Button Content="Stop" Margin="5" Click="StopButton_Click"/>
         </StackPanel>
     </Grid>
+    <UserControl.DataContext>
+        <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType={x:Type Window}}" Path="DataContext"/>
+    </UserControl.DataContext>
 </UserControl>

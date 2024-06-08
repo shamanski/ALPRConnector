@@ -21,6 +21,7 @@ namespace AlprGUI
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private string _statusMessage;
+        private readonly LogBox _logControl;
 
         public string StatusMessage
         {
@@ -32,19 +33,17 @@ namespace AlprGUI
             }
         }
 
-        private readonly LogBox logControl;
-
         public MainWindow()
         {
-            InitializeComponent();            
+            InitializeComponent();
             DataContext = this;
             StatusMessage = "Application Started";
-            logControl = new LogBox();
-            var loggerConfig = new LoggerConfiguration()
-   .WriteTo.RichTextBox(logControl.LogRichTextBox, theme: RichTextBoxConsoleTheme.Colored);
-            var logger = loggerConfig.CreateLogger();
-            Log.Logger = logger;
             Log.Information("Application started");
+        }
+
+        public MainWindow(LogBox logControl): this()
+        {
+            _logControl = logControl;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -91,7 +90,7 @@ namespace AlprGUI
         private void ShowLogContent()
         {
             MainContent.Children.Clear();
-            MainContent.Children.Add(logControl);
+            MainContent.Children.Add(_logControl);
         }
 
         private void ShowLprReadersContent()
