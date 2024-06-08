@@ -52,7 +52,7 @@ public class PortAdapterManager
             _adapterStatus[reader.Name] = "Stopped";
             AdapterStatusChanged?.Invoke(this, new AdapterStatusChangedEventArgs(reader, "Stopped"));
 
-            _adapters.TryRemove(adapterKeyValuePair.Key, out _); // Удаляем адаптер из словаря
+            _adapters.TryRemove(adapterKeyValuePair.Key, out _);
         }
     }
 

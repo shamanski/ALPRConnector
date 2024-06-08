@@ -30,7 +30,17 @@ public class ComPortService : IDisposable
                 DtrEnable = true,
                 ReadTimeout = 100
             };
-            serialPort.Open();
+
+            try 
+            {
+                serialPort.Open();
+            } 
+            catch (Exception ex) 
+            {
+                Log.Error($"{portName} unavailable");
+                return;
+            }
+            
             _ports[portName] = (serialPort, new SemaphoreSlim(1, 1));
             Log.Information($"COM port {portName} opened");
         }
@@ -84,6 +94,7 @@ public class ComPortService : IDisposable
             answ.Add((byte)(chksum % 0x40));
             port.BaseStream.Flush();
             await port.BaseStream.WriteAsync(answ.ToArray(), 0, answ.Count);
+            Log.Debug($"{lp} sent to {portName}, addr {rs485Address}");
         }
         finally
         {
@@ -94,6 +105,7 @@ public class ComPortService : IDisposable
     public void RemoveRS485Address(int rs485Address)
     {
         if (_rs485Addresses.TryRemove(rs485Address, out var portName))
+            Log.Information($"RS485 address {rs485Address} disconnected");
         {
             if (_ports.ContainsKey(portName))
             {
@@ -103,6 +115,7 @@ public class ComPortService : IDisposable
                     port.Close();
                     semaphore.Dispose();
                     _ports.TryRemove(portName, out _);
+                    Log.Information($"{portName} closed");
                 }
             }
         }

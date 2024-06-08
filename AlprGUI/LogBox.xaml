@@ -4,7 +4,13 @@
              xmlns:local="clr-namespace:AlprGUI"
              >
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <CheckBox x:Name="DebugCheckBox" Content="Enable Debug Logging" Checked="DebugCheckBox_Checked" Unchecked="DebugCheckBox_Unchecked" Grid.Row="0"/>
         <RichTextBox x:Name="LogRichTextBox" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                     IsReadOnly="True" Background="Black" Foreground="White"/>
+                     IsReadOnly="True" Background="Black" Foreground="White" Grid.Row="1"/>
     </Grid>
 </UserControl>
+

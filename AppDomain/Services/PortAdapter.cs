@@ -30,7 +30,7 @@ public class PortAdapter : IDisposable
             Log.Information($"Connected to {connection}");
             await alprClient.StartProcessingAsync(videoCapture, async result =>
             {
-                await _comPortService.SendLpAsync(_reader.ComPortPair.Receiver, _reader.RS485Addr, result);
+                await _comPortService.SendLpAsync(_reader.ComPortPair.Sender, _reader.RS485Addr, result);
             },
             _cancellationTokenSource.Token);
         }
@@ -38,11 +38,13 @@ public class PortAdapter : IDisposable
         {
             Log.Error($"Connection unsuccessful: {ex.Message}");
         }
+        Log.Information($"Reader started. Camera: {_reader.Name} COM: {_reader.ComPortPair.Sender} RS485: {_reader.RS485Addr}");
     }
 
     public void Stop()
     {
         _cancellationTokenSource.Cancel();
+        Log.Information($"Stop listen camera {_reader.Name}");
     }
 
     public void Dispose()

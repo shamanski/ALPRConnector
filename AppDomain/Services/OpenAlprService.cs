@@ -5,6 +5,7 @@ using openalprnet;
 using System.Collections.Concurrent;
 using AppDomain.Abstractions;
 using Serilog;
+using Serilog.Events;
 
 namespace AppDomain
 {
@@ -32,15 +33,14 @@ namespace AppDomain
 
         public async Task StartProcessingAsync(VideoCapture videoCapture, Action<string> processResult, CancellationToken cancellationToken)
         {
-            while (!videoCapture.IsOpened)
+            if (!videoCapture.IsOpened)
             {
-                Console.WriteLine("Unable to open camera. Retrying...");
+                Log.Error("Unable to open camera.");
                 videoCapture.Dispose();
-                videoCapture = new VideoCapture(@"rtsp://admin:admin@192.168.107.166:8080");
-                Thread.Sleep(1000);
+                throw new InvalidOperationException();
             }
 
-            Console.WriteLine("Camera connected...");
+            Log.Information($"Starting processing camera");
 
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -89,7 +89,7 @@ namespace AppDomain
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error processing frame");
+                            Log.Debug("Error while processing frame");
                         }
                         finally
                         {
@@ -114,8 +114,11 @@ namespace AppDomain
                     }
 
                     var mostCommonPlate = AggregatePlates(platesList);
-                    Console.WriteLine($"Best match: {mostCommonPlate}");
-                    processResult(mostCommonPlate);
+                    try
+                    {
+                        processResult(mostCommonPlate);
+                    }
+                    catch { }
                 }
             }, cancellationToken);
 

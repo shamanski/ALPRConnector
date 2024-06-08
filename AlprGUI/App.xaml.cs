@@ -19,6 +19,7 @@ public partial class App : Application
     {
         logControl = new LogBox();
         var loggerConfig = new LoggerConfiguration()
+               .MinimumLevel.Debug()
                .WriteTo.RichTextBox(logControl.LogRichTextBox, theme: RichTextBoxConsoleTheme.Colored);
         var logger = loggerConfig.CreateLogger();
         Log.Logger = logger;
