@@ -7,19 +7,17 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Canvas x:Name="canvas" Grid.Row="0">
-            <Image x:Name="imageControl" Stretch="Uniform" />
-        </Canvas>
+        
 
-        <StackPanel Orientation="Horizontal" 
-                    HorizontalAlignment="Center" 
-                    VerticalAlignment="Bottom" 
-                    Margin="0,10,0,10"
-                    Grid.Row="1">
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,10">
             <Button Content="Select LPR area" Margin="5" Click="SelectAreaButton_Click" />
-            <Button Content="Button 1" Margin="5" />
+            <Button Content="Save" Margin="5" Click="SaveButton_Click"/>
             <ComboBox x:Name="cameraComboBox" Width="150" Margin="5" DisplayMemberPath="Name" />
             <Button Content="Start" Margin="5" Click="StartButton_Click" />
         </StackPanel>
+        <Canvas x:Name="canvas" Grid.Row="0"  MouseDown="ImageControl_MouseDown" MouseMove="ImageControl_MouseMove" MouseUp="ImageControl_MouseUp">
+            <Image x:Name="imageControl" Stretch="UniformToFill"/>
+            
+        </Canvas>
     </Grid>
 </UserControl>

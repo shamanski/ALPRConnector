@@ -1,104 +1,104 @@
-﻿using Serilog;
+﻿using AppDomain;
+using AppDomain.Enums;
+using Serilog;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO.Ports;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class ComPortService : IDisposable
+public class ComPortService : IDisposable, IHealthCheckService
 {
-    private readonly ConcurrentDictionary<string, (SerialPort port, SemaphoreSlim semaphore)> _ports;
+    private readonly ConcurrentDictionary<string, SerialPort> _ports;
     private readonly ConcurrentDictionary<int, string> _rs485Addresses;
+    private readonly ConcurrentDictionary<(string portName, int rs485Address), string> _lpDictionary;
+    private readonly SemaphoreSlim _lpSemaphore = new SemaphoreSlim(1, 1);
+    private long requests = 0;
+    private int threadId = Thread.CurrentThread.ManagedThreadId;
+    private Stopwatch stopwatch;
 
     public ComPortService()
     {
-        _ports = new ConcurrentDictionary<string, (SerialPort, SemaphoreSlim)>();
+
+        _ports = new ConcurrentDictionary<string, SerialPort>();
         _rs485Addresses = new ConcurrentDictionary<int, string>();
+        _lpDictionary = new ConcurrentDictionary<(string portName, int rs485Address), string>();
+        stopwatch = new Stopwatch();
         Log.Information("COM port service started");
     }
 
-    public async Task SendLpAsync(string portName, int rs485Address, string lp)
+    public async Task Run(string portName)
     {
         if (!_ports.ContainsKey(portName))
         {
-            var serialPort = new SerialPort(portName, 19200, Parity.Even, 8, StopBits.One)
+            var port = new SerialPort(portName, 19200, Parity.Even, 8, StopBits.One)
             {
                 Handshake = Handshake.None,
                 RtsEnable = true,
                 DtrEnable = true,
-                ReadTimeout = 100
+                ReadTimeout = 1000
             };
 
-            try 
+            try
             {
-                serialPort.Open();
-            } 
-            catch (Exception ex) 
-            {
-                Log.Error($"{portName} unavailable");
-                return;
+                port.Open();
             }
-            
-            _ports[portName] = (serialPort, new SemaphoreSlim(1, 1));
-            Log.Information($"COM port {portName} opened");
+            catch (Exception ex)
+            {
+                Log.Error($"{portName} unavailable: {ex.Message}");
+                throw;
+            }
+
+            _ports[portName] = port;
+            Log.Information($"{portName} opened");
         }
 
-        if (!_rs485Addresses.ContainsKey(rs485Address))
+        await Task.Run( () => ListenPort(portName));
+    }
+
+    private void ListenPort(string portName)
+    {
+        threadId = Thread.CurrentThread.ManagedThreadId;
+        var serialPort = _ports[portName];
+        byte caH = 0, caL = 0, caC = 0;
+        Thread.Sleep(18);
+        stopwatch.Start();
+        while (true)
         {
-            _rs485Addresses[rs485Address] = portName;
-            Log.Information($"Connected to {portName} with RS485 device {rs485Address}");
+            Thread.Sleep(18);
+            if (serialPort.BytesToRead > 2)
+            {
+                try
+                {
+                    caH = (byte)serialPort.ReadByte();
+                    caL = (byte)serialPort.ReadByte();
+                    caC = (byte)serialPort.ReadByte();                   
+                }
+                catch { continue; }
+
+                byte computedChecksum = (byte)(((caH ^ caL) ^ 0xFF) % 0x40);
+
+                if (caC == computedChecksum)
+                {
+                    ProcessReceivedData(caH, caL, serialPort.PortName);
+                }
+            }           
         }
+    }
 
-        var (port, semaphore) = _ports[portName];
-
-        await semaphore.WaitAsync();
+    public async Task SendLpAsync(string portName, int rs485Address, string lp)
+    {
+        await _lpSemaphore.WaitAsync();
         try
         {
-            byte caH = (byte)((rs485Address / 0x40) + 0xC0);
-            byte caL = (byte)((rs485Address % 0x40) + 0x80);
-            byte caC = (byte)(((caH ^ caL) ^ 0xFF) % 0x40);
-
-            if (rs485Address < 0)
-            {
-                caH = 0x00;
-                caL = (byte)((rs485Address % 0x40) + 0x80);
-                caC = (byte)((caL ^ 0xFF) % 0x40);
-            }
-
-            List<byte> answ = new List<byte> { 0x40 };
-            foreach (char ch in lp)
-            {
-                if (char.IsDigit(ch))
-                {
-                    answ.Add((byte)(ch - '0' + 1 + 0x40));
-                }
-                else if (char.IsLetter(ch))
-                {
-                    answ.Add((byte)(char.ToUpper(ch) - 'A' + 11 + 0x40));
-                }
-            }
-
-            while (answ.Count < 9)
-            {
-                answ.Add(0x40);
-            }
-
-            byte chksum = 0xFF;
-            foreach (byte x in answ)
-            {
-                chksum ^= x;
-            }
-
-            answ.Add((byte)(chksum % 0x40));
-            port.BaseStream.Flush();
-            await port.BaseStream.WriteAsync(answ.ToArray(), 0, answ.Count);
-            Log.Debug($"{lp} sent to {portName}, addr {rs485Address}");
+            _lpDictionary[(portName, rs485Address)] = lp;
         }
         finally
         {
-            semaphore.Release();
+            _lpSemaphore.Release();
         }
     }
 
@@ -109,11 +109,10 @@ public class ComPortService : IDisposable
         {
             if (_ports.ContainsKey(portName))
             {
-                var (port, semaphore) = _ports[portName];
+                var port = _ports[portName];
                 if (_rs485Addresses.Values.Count(v => v == portName) == 0)
                 {
                     port.Close();
-                    semaphore.Dispose();
                     _ports.TryRemove(portName, out _);
                     Log.Information($"{portName} closed");
                 }
@@ -121,12 +120,96 @@ public class ComPortService : IDisposable
         }
     }
 
+    private void ProcessReceivedData(byte caH, byte caL, string comPortName)
+    {
+        requests++;
+        int rs485Address = ExtractRs485Address(caH, caL);
+        if (_ports.TryGetValue(comPortName, out var port))
+        {
+            if (_lpDictionary.TryRemove((comPortName, rs485Address), out var lp))
+            {
+                SendResponse(port, rs485Address, lp);
+            }
+            else
+            {
+                SendResponse(port, rs485Address, string.Empty);
+            }
+        }
+    }
+
+    private void SendResponse(SerialPort port, int rs485Address, string lp)
+    {
+        byte[] answ = new byte[10];
+        answ[0] = 0x40;
+
+        int index = 1;
+        foreach (char ch in lp)
+        {
+            if (char.IsDigit(ch))
+            {
+                answ[index++] = (byte)(ch - '0' + 1 + 0x40);
+            }
+            else if (char.IsLetter(ch))
+            {
+                answ[index++] = (byte)(char.ToUpper(ch) - 'A' + 11 + 0x40);
+            }
+        }
+
+        while (index < 9)
+        {
+            answ[index++] = 0x40;
+        }
+
+        byte chksum = 0xFF;
+        for (int i = 0; i < 9; i++)
+        {
+            chksum ^= answ[i];
+        }
+
+        answ[9] = (byte)(chksum % 0x40);
+
+        port.Write(answ, 0, answ.Length);
+        port.BaseStream.Flush();
+        _lpDictionary.TryRemove((port.PortName, rs485Address), out _);
+
+        if (!string.IsNullOrEmpty(lp))
+        {
+            Log.Debug($"{lp} sent to {port.PortName}, addr {rs485Address}");
+        }
+    }
+
+    private int ExtractRs485Address(byte caH, byte caL)
+    {
+        int rs485Address = -1;
+
+            if ((caH & 0x80) == 0x80)
+            {
+                rs485Address = ((caH & 0x3F) << 6) | (caL & 0x3F);
+            }
+            else
+            {
+                rs485Address = caH & 0x7F;
+            }
+
+        return rs485Address;
+    }
+
+    public async Task<string> CheckHealthAsync()
+    {
+        await Task.Delay(10);
+        int fps = 0;
+        stopwatch.Stop();
+        fps = requests == 0 ? 0 : (int)(requests / stopwatch.Elapsed.TotalSeconds );        
+        requests = 0;
+        stopwatch.Restart();
+        return $"Thread {threadId} COM Port service: listen {_ports.FirstOrDefault().Key}, get {fps} requests/sec";
+    }
+
     public void Dispose()
     {
-        foreach (var (port, semaphore) in _ports.Values)
+        foreach (var port in _ports.Values)
         {
             port.Close();
-            semaphore.Dispose();
         }
         _ports.Clear();
         _rs485Addresses.Clear();

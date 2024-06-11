@@ -6,10 +6,15 @@ using System.Collections.Concurrent;
 using AppDomain.Abstractions;
 using Serilog;
 using Serilog.Events;
+using System.Threading.Channels;
+using System.Threading;
+using System.Drawing;
+using System.Diagnostics;
+using System.Windows.Media.Media3D;
 
 namespace AppDomain
 {
-    public class OpenAlprService : IAlprClient
+    public class OpenAlprService : IAlprClient, IHealthCheckService
     {
         private readonly AlprNet _alprNet;
         private readonly ConcurrentQueue<string> _plates;
@@ -17,125 +22,171 @@ namespace AppDomain
         private Mat _lastFrame;
         private readonly object _frameLock = new object();
         private CancellationTokenSource _cancellationTokenSource;
+        private long frames = 0;
+        private int threadId = Thread.CurrentThread.ManagedThreadId;
+        private Stopwatch stopwatch = new Stopwatch();
+        List<Rectangle> regions = new List<Rectangle>();
 
         public OpenAlprService()
         {
             _alprNet = new AlprNet("eu", string.Empty, string.Empty)
             {
-                TopN = 10
+                TopN = 10,
             };
-
             _plates = new ConcurrentQueue<string>();
             _comparer = new LongestCommonSubsequence();
+            Rectangle rect = new Rectangle(0, 300, 720, 500);
+            regions.Add(rect);
         }
 
         public bool IsLoaded => _alprNet.IsLoaded();
 
-        public async Task StartProcessingAsync(VideoCapture videoCapture, Action<string> processResult, CancellationToken cancellationToken)
+        public async Task StartProcessingAsync(VideoCapture videoCapture, Func<string, Task> processResult, CancellationToken cancellationToken)
         {
-            if (!videoCapture.IsOpened)
-            {
-                Log.Error("Unable to open camera.");
-                videoCapture.Dispose();
-                throw new InvalidOperationException();
-            }
 
             Log.Information($"Starting processing camera");
+            await processResult("CAMREADY");
 
             _cancellationTokenSource = new CancellationTokenSource();
 
-            var captureTask = Task.Run(() =>
+            try
             {
-                while (!cancellationToken.IsCancellationRequested)
+                var captureTask = Task.Run(async () =>
                 {
-                    var frame = new Mat();
-                    videoCapture.Read(frame);
+                    await CaptureFramesAsync(videoCapture, cancellationToken);
+                });
 
-                    if (frame == null || frame.Width == 0 || frame.Height == 0)
+                var processingTask = Task.Run(async () =>
+                {
+                    await ProcessFramesAsync(cancellationToken);
+                });
+
+                var aggregationTask = Task.Run(async () =>
+                {
+                    await AggregatePlatesAsync(processResult, cancellationToken);
+                });
+
+                Log.Information("All tasks started");
+
+                await Task.WhenAny(captureTask, processingTask, aggregationTask);
+                Log.Information("One of the tasks has completed or canceled");
+                throw new Exception();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Error in StartProcessingAsync: {ex.Message}");
+                videoCapture.Dispose();
+                throw;
+            }
+        }
+
+        private async Task CaptureFramesAsync(VideoCapture videoCapture, CancellationToken cancellationToken)
+        {
+            DateTime lastFrameTime = DateTime.Now;
+            Log.Information($"Capture on thread: {Thread.CurrentThread.ManagedThreadId}");
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                if (!videoCapture.IsOpened)
+                {
+                    Log.Error("Unable to open camera.");
+                    throw new InvalidOperationException();
+                }
+
+                using var frame = new Mat();
+                var isSuccess = videoCapture.Read(frame);
+
+                if (frame == null)
+                {
+                    continue;
+                }
+                if (frame.Width == 0 || frame.Height == 0 || !isSuccess)
+                {
+                    var elapsedSeconds = (DateTime.Now - lastFrameTime).TotalSeconds;
+                    if (elapsedSeconds > 5)
                     {
-                        frame.Dispose();
-                        continue;
+                        Log.Error($"Error reading stream");
+                        throw new Exception("");
                     }
 
+                    Thread.Sleep(20);
+                    continue;
+                }
+
+                lock (_frameLock)
+                {
+                    _lastFrame?.Dispose();
+                    _lastFrame = frame.Clone();
+                    frame.Dispose();
+                }
+              
+            }
+            Log.Information($"Capture stopped");
+        }
+
+            private async Task ProcessFramesAsync(CancellationToken cancellationToken)
+        {
+            Log.Information($"Starting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                if (_lastFrame != null)
+                {
+                    Mat frameToProcess;
                     lock (_frameLock)
                     {
-                        _lastFrame?.Dispose();
-                        _lastFrame = frame;
+                        frameToProcess = _lastFrame.Clone();
                     }
 
-                    Task.Delay(10).Wait();
-                }
-            }, cancellationToken);
-
-            var processingTask = Task.Run(async () =>
-            {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    Mat frameToProcess = null;
-
-                    lock (_frameLock)
-                    {
-                        if (_lastFrame != null)
-                        {
-                            frameToProcess = _lastFrame.Clone();
-                        }
-                    }
-
-                    if (frameToProcess != null)
-                    {
-                        try
-                        {
-                            ProcessFrame(frameToProcess);
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Debug("Error while processing frame");
-                        }
-                        finally
-                        {
-                            frameToProcess.Dispose();
-                        }
-                    }
-
-                    await Task.Delay(50, cancellationToken); // Adjust delay to control processing rate
-                }
-            }, cancellationToken);
-
-            var aggregationTask = Task.Run(async () =>
-            {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    await Task.Delay(3000, cancellationToken); // Aggregation interval
-
-                    var platesList = new List<string>();
-                    while (_plates.TryDequeue(out var plate))
-                    {
-                        platesList.Add(plate);
-                    }
-
-                    var mostCommonPlate = AggregatePlates(platesList);
                     try
                     {
-                        processResult(mostCommonPlate);
+                        ProcessFrame(frameToProcess);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error while processing frame: {ex.Message}");
+                    }
+                    finally
+                    {
+                        frames++;
+                        frameToProcess.Dispose();
+                    }
                 }
-            }, cancellationToken);
 
-            await Task.WhenAll(captureTask, processingTask, aggregationTask);
+                Thread.Sleep(3);
+            }
+
+            Log.Information($"Exiting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
         }
+
 
         private void ProcessFrame(Mat frame)
         {
-            using var gray = new Mat();
-            CvInvoke.CvtColor(frame, gray, ColorConversion.Bgr2Gray);
-            using var bmp = gray.ToBitmap();
+            byte[] imageBytes = null;
 
-            var res = _alprNet.Recognize(bmp);
-
-            foreach (var plate in res.Plates)
+            try
             {
-                _plates.Enqueue(plate.BestPlate.Characters);
+                lock (_frameLock)
+                {
+                    using var gray = new Mat();
+                    CvInvoke.CvtColor(frame, gray, ColorConversion.Bgr2Gray);
+                    imageBytes = CvInvoke.Imencode(".jpg", gray);
+                }
+
+                byte[] prewarpedImage = _alprNet.PreWarp(imageBytes);
+                var res = _alprNet.Recognize(prewarpedImage, regions);
+
+                foreach (var plate in res.Plates)
+                {
+                    _plates.Enqueue(plate.BestPlate.Characters);     
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Frame error: " + ex.Message);
+            }
+            finally
+            {
+                frame?.Dispose();
             }
         }
 
@@ -144,9 +195,42 @@ namespace AppDomain
             _cancellationTokenSource?.Cancel();
         }
 
+        private async Task AggregatePlatesAsync(Func<string, Task> processResult, CancellationToken cancellationToken)
+        {
+            Log.Information($"Starting AggregatePlatesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
+
+            var mostCommonPlate = string.Empty;
+            var platesList = new List<string>(64);
+
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Thread.Sleep(3000);                      
+                while (_plates.TryDequeue(out var plate))
+                {
+                    platesList.Add(plate);
+                }
+
+                mostCommonPlate = AggregatePlates(platesList);
+                if (mostCommonPlate != string.Empty)
+                {
+                    try
+                    {                     
+                        await processResult(mostCommonPlate);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error while processing result: {ex.Message}");
+                    }
+                }
+                platesList.Clear();
+            }
+
+            Log.Information($"Exiting AggregatePlatesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
+        }
+
         private string AggregatePlates(List<string> plates)
         {
-            if (plates.Count < 4) return "EMPTY";
+            if (plates.Count < 5) return string.Empty;
 
             var plateGroups = new Dictionary<string, int>();
             foreach (var plate in plates)
@@ -155,7 +239,7 @@ namespace AppDomain
                 foreach (var existingPlate in plateGroups.Keys.ToList())
                 {
                     double similarity = _comparer.Distance(existingPlate, plate);
-                    if (similarity < 3) // Customize threshold as needed
+                    if (similarity < 4)
                     {
                         plateGroups[existingPlate]++;
                         found = true;
@@ -176,11 +260,9 @@ namespace AppDomain
 
         public async Task<VideoCapture> CreateVideoCaptureAsync(string connection, CancellationToken cancellationToken)
         {
-            return await Task.Run(async () =>
+            var res = await Task.Run( () =>
             {
                 VideoCapture videoCapture = null;
-                while (!cancellationToken.IsCancellationRequested)
-                {
                     videoCapture = new VideoCapture(connection);
                     if (videoCapture.IsOpened)
                     {
@@ -190,11 +272,21 @@ namespace AppDomain
                     {
                         Log.Error($"Error connecting to {connection}. Trying again");
                         videoCapture.Dispose();
-                        await Task.Delay(100, cancellationToken);
                     }
-                }
                 throw new ArgumentException("Unable to open video source");
             }, cancellationToken);
+            return res;
         }
+        public async Task<string> CheckHealthAsync()
+        {
+            await Task.Delay(10);
+            int fps = 0;
+            stopwatch.Stop();
+            fps = frames == 0 ? 0 : (int)(frames / stopwatch.Elapsed.TotalSeconds);
+            frames = 0;
+            stopwatch.Restart();
+            return $"Thread {threadId} LPR recognition service:  {fps} frames/sec";
+        }
+
     }
 }

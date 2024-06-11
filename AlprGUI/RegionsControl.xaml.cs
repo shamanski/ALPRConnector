@@ -41,11 +41,14 @@ namespace AlprGUI
             try
             {
                 var videoCaptureManager = VideoCaptureService.Instance;
-                await videoCaptureManager.StartProcessingAsync(connection, frame =>
+                await videoCaptureManager.StartProcessingAsync(connection, async frame =>
                 {
-                    Dispatcher.Invoke(() =>
+                    // Resize the frame to a smaller size
+                    var resizedFrame = videoCaptureManager.ResizeFrame(frame, new System.Drawing.Size(320, 240));
+
+                    await Dispatcher.InvokeAsync(() =>
                     {
-                        imageControl.Source = ToBitmapSource(frame);
+                        imageControl.Source = ToBitmapSource(resizedFrame);
                     });
                 });
             }
@@ -53,19 +56,34 @@ namespace AlprGUI
             {
                 MessageBox.Show(ex.Message);
             }
-            
         }
 
-        private void SelectAreaButton_Click(object sender, RoutedEventArgs e)
+        private async void SelectAreaButton_Click(object sender, RoutedEventArgs e)
         {
-            // Логика для выбора области LPR
+            isSelectingArea = true;
         }
 
-        private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (selectionRectangle != null)
+            {
+                double left = Canvas.GetLeft(selectionRectangle);
+                double top = Canvas.GetTop(selectionRectangle);
+                double width = selectionRectangle.Width;
+                double height = selectionRectangle.Height;
+
+                // Сохранение выделенной области
+                // Здесь вы можете реализовать свою логику для сохранения координат или изображения выделенной области
+
+                MessageBox.Show($"Область сохранена: Left={left}, Top={top}, Width={width}, Height={height}");
+            }
+        }
+
+        private void ImageControl_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (isSelectingArea)
             {
-                Point position = e.GetPosition(canvas);
+                Point position = e.GetPosition(canvas); // Получаем координаты относительно imageControl
                 if (position.X >= 0 && position.X <= canvas.ActualWidth &&
                     position.Y >= 0 && position.Y <= canvas.ActualHeight)
                 {
@@ -81,26 +99,37 @@ namespace AlprGUI
                     canvas.Children.Add(selectionRectangle);
                 }
             }
-            else
+        }
+
+        private void ImageControl_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (isSelectingArea && selectionRectangle != null)
             {
-                Point endPoint = e.GetPosition(canvas);
-                double left = Math.Min(startPoint.X, endPoint.X);
-                double top = Math.Min(startPoint.Y, endPoint.Y);
-                double width = Math.Abs(startPoint.X - endPoint.X);
-                double height = Math.Abs(startPoint.Y - endPoint.Y);
+                Point position = e.GetPosition(canvas); // Получаем координаты относительно imageControl
+                double left = Math.Min(startPoint.X, position.X);
+                double top = Math.Min(startPoint.Y, position.Y);
+                double width = Math.Abs(startPoint.X - position.X);
+                double height = Math.Abs(startPoint.Y - position.Y);
 
                 selectionRectangle.Margin = new Thickness(left, top, 0, 0);
                 selectionRectangle.Width = width;
                 selectionRectangle.Height = height;
-
-                isSelectingArea = false;
-
             }
         }
 
-        private void Canvas_MouseMove(object sender, MouseEventArgs e)
+        private void ImageControl_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            // Логика для обработки движения мыши на canvas
+            if (isSelectingArea)
+            {
+                isSelectingArea = false;
+
+                // Convert coordinates from canvas to imageControl
+                Point startPointImage = canvas.TranslatePoint(startPoint, canvas);
+                Point endPointImage = canvas.TranslatePoint(e.GetPosition(canvas), canvas);
+
+                // Use startPointImage and endPointImage as coordinates relative to imageControl
+                // for further processing
+            }
         }
 
         private BitmapSource ToBitmapSource(Mat mat)

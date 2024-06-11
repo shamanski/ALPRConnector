@@ -65,6 +65,9 @@ namespace AlprGUI
                         case "Regions":
                             ShowRegionsContent();
                             break;
+                        case "Diagnostics":
+                            ShowHealthCheckContent();
+                            break;
                         case "Virtual COM Ports":
                             ShowComPortsContent();
                             break;
@@ -136,6 +139,13 @@ namespace AlprGUI
             var lprServicesControl = new LprServicesControl();
             MainContent.Children.Clear();
             MainContent.Children.Add(lprServicesControl);
+        }
+
+        private void ShowHealthCheckContent()
+        {
+            var healthCheckControl = new HealthCheckControl();
+            MainContent.Children.Clear();
+            MainContent.Children.Add(healthCheckControl);
         }
     }
 }

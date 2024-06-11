@@ -9,7 +9,7 @@ namespace AppDomain.Abstractions
 {
     public interface IAlprClient
     {
-        Task StartProcessingAsync(VideoCapture videoCapture, Action<string> processResult, CancellationToken cancellationToken);
+        Task StartProcessingAsync(VideoCapture videoCapture, Func<string, Task> processResult, CancellationToken cancellationToken);
         void StopProcessing();
     }
 }

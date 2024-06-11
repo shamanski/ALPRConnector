@@ -8,10 +8,12 @@ namespace AppDomain
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Drawing;
     using System.Threading;
     using System.Threading.Tasks;
     using Emgu.CV;
     using Emgu.CV.CvEnum;
+    using Serilog;
     using static System.Net.Mime.MediaTypeNames;
 
     public class VideoCaptureService
@@ -58,19 +60,26 @@ namespace AppDomain
         private async Task CaptureFrames(string cameraName, CancellationToken cancellationToken)
         {
             var videoCapture = _captures[cameraName];
-
+            DateTime lastFrameTime = DateTime.Now;
             while (!cancellationToken.IsCancellationRequested)
             {
                 var frame = new Mat();
-                videoCapture.Read(frame);
+                var isSuccess = videoCapture.Read(frame);
 
-                if (frame.IsEmpty)
+                if (frame.IsEmpty || !isSuccess)
                 {
                     frame.Dispose();
                     await Task.Delay(10, cancellationToken);
+                    var elapsedSeconds = (DateTime.Now - lastFrameTime).TotalSeconds;
+                    if (elapsedSeconds > 10)
+                    {
+                        Log.Error($"Stream error in camera {cameraName}");
+                        throw new InvalidOperationException();
+                    }
                     continue;
                 }
 
+                lastFrameTime = DateTime.Now;
                 List<Action<Mat>> handlers;
                 lock (_lock)
                 {
@@ -103,6 +112,13 @@ namespace AppDomain
             {
                 StopProcessing(cameraName);
             }
+        }
+
+        public Mat ResizeFrame(Mat frame, Size newSize)
+        {
+            var resizedFrame = new Mat();
+            CvInvoke.Resize(frame, resizedFrame, newSize);
+            return resizedFrame;
         }
     }
 }

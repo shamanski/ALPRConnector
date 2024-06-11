@@ -26,6 +26,9 @@
                 <TextBlock Text="Log" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
+                <TextBlock Text="Diagnostics" Margin="10" Padding="5"/>
+            </ListBoxItem>
+            <ListBoxItem>
                 <TextBlock Text="Regions" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
@@ -48,7 +51,7 @@
         <!-- Main Content Area -->
         <Grid x:Name="MainContent">
             <!-- Default Content -->
-            <TextBlock Text="Welcome to ALPR GUI" 
+            <TextBlock Text="LPR demo" 
                        VerticalAlignment="Center" 
                        HorizontalAlignment="Center" 
                        FontSize="24"/>
