@@ -10,6 +10,7 @@ public class PortAdapter : IDisposable, IHealthCheckService
     private readonly LprReader _reader;
     private readonly CameraRepository cameraManager;
     private readonly LprReaderRepository readerManager;
+    private readonly string connection;
     private readonly OpenAlprService alprClient;
     private CancellationTokenSource _cancellationTokenSource;
 
@@ -19,7 +20,8 @@ public class PortAdapter : IDisposable, IHealthCheckService
         _reader = reader;
         cameraManager = new CameraRepository();
         readerManager = new LprReaderRepository();
-        alprClient = new OpenAlprService();
+        connection = cameraManager.GetConnectionString(_reader.Camera);
+        alprClient = new OpenAlprService(connection);
         HealthCheck.RegisterService(alprClient);
         _cancellationTokenSource = new CancellationTokenSource();
     }
@@ -30,9 +32,8 @@ public class PortAdapter : IDisposable, IHealthCheckService
         {
             try
             {
-                var connection = cameraManager.GetConnectionString(_reader.Camera);
+               
                 Log.Information($"Trying connect to {connection}");
-                using var videoCapture = await alprClient.CreateVideoCaptureAsync(connection, _cancellationTokenSource.Token);
                 Log.Information($"Connected to {connection}");
 
                 var portTask = Task.Run(async () =>
@@ -42,7 +43,7 @@ public class PortAdapter : IDisposable, IHealthCheckService
 
                 var alprTask = Task.Run(async () =>
                 {
-                    await alprClient.StartProcessingAsync(videoCapture, async result =>
+                    await alprClient.StartProcessingAsync(async result =>
                     {
                         await _comPortService.SendLpAsync(_reader.ComPortPair.Sender, _reader.RS485Addr, result);
                     },

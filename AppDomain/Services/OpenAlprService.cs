@@ -1,51 +1,47 @@
 ﻿using Emgu.CV.CvEnum;
 using Emgu.CV;
 using F23.StringSimilarity;
-using openalprnet;
 using System.Collections.Concurrent;
 using AppDomain.Abstractions;
 using Serilog;
-using Serilog.Events;
-using System.Threading.Channels;
-using System.Threading;
-using System.Drawing;
 using System.Diagnostics;
-using System.Windows.Media.Media3D;
+using Rectangle = System.Drawing.Rectangle;
+using Emgu.CV.OCR;
+using Emgu.CV.Structure;
+using Emgu.CV.Util;
+using Nomerator;
+using Image = SixLabors.ImageSharp.Image;
 
 namespace AppDomain
 {
     public class OpenAlprService : IAlprClient, IHealthCheckService
     {
-        private readonly AlprNet _alprNet;
+        private readonly DetectionAndReading _predictor;
+        private readonly Tesseract _ocr;
         private readonly ConcurrentQueue<string> _plates;
         private readonly LongestCommonSubsequence _comparer;
+        private readonly string _connection;
         private Mat _lastFrame;
         private readonly object _frameLock = new object();
         private CancellationTokenSource _cancellationTokenSource;
         private long frames = 0;
         private int threadId = Thread.CurrentThread.ManagedThreadId;
         private Stopwatch stopwatch = new Stopwatch();
-        List<Rectangle> regions = new List<Rectangle>();
-
-        public OpenAlprService()
+        List<System.Drawing.Rectangle> regions = new List<System.Drawing.Rectangle>();
+        public OpenAlprService(string connection)
         {
-            _alprNet = new AlprNet("eu", string.Empty, string.Empty)
-            {
-                TopN = 10,
-            };
+            _connection = connection;
+            _predictor = new DetectionAndReading();
             _plates = new ConcurrentQueue<string>();
             _comparer = new LongestCommonSubsequence();
-            Rectangle rect = new Rectangle(0, 300, 720, 500);
+            Rectangle rect = new Rectangle(0, 100, 720, 500);
             regions.Add(rect);
         }
 
-        public bool IsLoaded => _alprNet.IsLoaded();
-
-        public async Task StartProcessingAsync(VideoCapture videoCapture, Func<string, Task> processResult, CancellationToken cancellationToken)
+        public async Task StartProcessingAsync(Func<string, Task> processResult, CancellationToken cancellationToken)
         {
 
-            Log.Information($"Starting processing camera");
-            await processResult("CAMREADY");
+            Log.Information($"Starting processing camera...");           
 
             _cancellationTokenSource = new CancellationTokenSource();
 
@@ -53,7 +49,7 @@ namespace AppDomain
             {
                 var captureTask = Task.Run(async () =>
                 {
-                    await CaptureFramesAsync(videoCapture, cancellationToken);
+                    await CaptureFramesAsync(processResult, cancellationToken);
                 });
 
                 var processingTask = Task.Run(async () =>
@@ -75,50 +71,52 @@ namespace AppDomain
             catch (Exception ex)
             {
                 Log.Error($"Error in StartProcessingAsync: {ex.Message}");
-                videoCapture.Dispose();
                 throw;
             }
         }
 
-        private async Task CaptureFramesAsync(VideoCapture videoCapture, CancellationToken cancellationToken)
+        private async Task CaptureFramesAsync(Func<string, Task> processResult, CancellationToken cancellationToken)
         {
-            DateTime lastFrameTime = DateTime.Now;
-            Log.Information($"Capture on thread: {Thread.CurrentThread.ManagedThreadId}");
+            DateTime lastFrameTime = DateTime.Now;            
+            using var videoCapture = new VideoCapture(_connection);
+            if (!videoCapture.IsOpened)
+            {
+                Log.Error("Error connecting to camera... Restart.");
+                throw new Exception();
+            }
+
+            Log.Information($"Capture started on thread: {Thread.CurrentThread.ManagedThreadId}");
+            await processResult("CAMREADY");
+            Mat frame = new Mat();
             while (!cancellationToken.IsCancellationRequested)
             {
+                Thread.Sleep(100);
+
                 if (!videoCapture.IsOpened)
                 {
                     Log.Error("Unable to open camera.");
                     throw new InvalidOperationException();
                 }
 
-                using var frame = new Mat();
-                var isSuccess = videoCapture.Read(frame);
-
+                frame = videoCapture.QueryFrame();
                 if (frame == null)
-                {
-                    continue;
-                }
-                if (frame.Width == 0 || frame.Height == 0 || !isSuccess)
                 {
                     var elapsedSeconds = (DateTime.Now - lastFrameTime).TotalSeconds;
                     if (elapsedSeconds > 5)
                     {
                         Log.Error($"Error reading stream");
-                        throw new Exception("");
+                        throw new Exception("Failed to read from camera.");
                     }
-
-                    Thread.Sleep(20);
+                   
                     continue;
                 }
 
                 lock (_frameLock)
                 {
-                    _lastFrame?.Dispose();
                     _lastFrame = frame.Clone();
-                    frame.Dispose();
                 }
-              
+
+                frame.Dispose();
             }
             Log.Information($"Capture stopped");
         }
@@ -135,6 +133,7 @@ namespace AppDomain
                     lock (_frameLock)
                     {
                         frameToProcess = _lastFrame.Clone();
+                       // _lastFrame.Dispose();
                     }
 
                     try
@@ -148,11 +147,11 @@ namespace AppDomain
                     finally
                     {
                         frames++;
-                        frameToProcess.Dispose();
+                        frameToProcess.Dispose();                       
                     }
                 }
 
-                Thread.Sleep(3);
+                Thread.Sleep(30);
             }
 
             Log.Information($"Exiting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
@@ -161,32 +160,13 @@ namespace AppDomain
 
         private void ProcessFrame(Mat frame)
         {
-            byte[] imageBytes = null;
-
-            try
             {
-                lock (_frameLock)
+                List<string> plates = new();                
+                plates = _predictor.Recognize(frame);
+                foreach (var pl in plates)
                 {
-                    using var gray = new Mat();
-                    CvInvoke.CvtColor(frame, gray, ColorConversion.Bgr2Gray);
-                    imageBytes = CvInvoke.Imencode(".jpg", gray);
+                    _plates.Enqueue(pl);     
                 }
-
-                byte[] prewarpedImage = _alprNet.PreWarp(imageBytes);
-                var res = _alprNet.Recognize(prewarpedImage, regions);
-
-                foreach (var plate in res.Plates)
-                {
-                    _plates.Enqueue(plate.BestPlate.Characters);     
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error("Frame error: " + ex.Message);
-            }
-            finally
-            {
-                frame?.Dispose();
             }
         }
 
@@ -204,7 +184,7 @@ namespace AppDomain
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                Thread.Sleep(3000);                      
+                Thread.Sleep(2000);                      
                 while (_plates.TryDequeue(out var plate))
                 {
                     platesList.Add(plate);
@@ -230,8 +210,7 @@ namespace AppDomain
 
         private string AggregatePlates(List<string> plates)
         {
-            if (plates.Count < 5) return string.Empty;
-
+            if (plates == null || plates.Count == 0) return string.Empty;
             var plateGroups = new Dictionary<string, int>();
             foreach (var plate in plates)
             {
@@ -258,25 +237,6 @@ namespace AppDomain
             return mostCommonPlate;
         }
 
-        public async Task<VideoCapture> CreateVideoCaptureAsync(string connection, CancellationToken cancellationToken)
-        {
-            var res = await Task.Run( () =>
-            {
-                VideoCapture videoCapture = null;
-                    videoCapture = new VideoCapture(connection);
-                    if (videoCapture.IsOpened)
-                    {
-                        return videoCapture;
-                    }
-                    else
-                    {
-                        Log.Error($"Error connecting to {connection}. Trying again");
-                        videoCapture.Dispose();
-                    }
-                throw new ArgumentException("Unable to open video source");
-            }, cancellationToken);
-            return res;
-        }
         public async Task<string> CheckHealthAsync()
         {
             await Task.Delay(10);
@@ -286,6 +246,49 @@ namespace AppDomain
             frames = 0;
             stopwatch.Restart();
             return $"Thread {threadId} LPR recognition service:  {fps} frames/sec";
+        }
+
+        private static UMat FilterPlate(UMat plate)
+        {
+            UMat thresh = new UMat();
+            CvInvoke.Threshold(plate, thresh, 120, 255, ThresholdType.BinaryInv);
+            //Image<Gray, Byte> thresh = plate.ThresholdBinaryInv(new Gray(120), new Gray(255));
+
+            System.Drawing.Size plateSize = plate.Size;
+            using (Mat plateMask = new Mat(plateSize.Height, plateSize.Width, DepthType.Cv8U, 1))
+            using (Mat plateCanny = new Mat())
+            using (VectorOfVectorOfPoint contours = new VectorOfVectorOfPoint())
+            {
+                plateMask.SetTo(new MCvScalar(255.0));
+                CvInvoke.Canny(plate, plateCanny, 100, 50);
+                CvInvoke.FindContours(plateCanny, contours, null, RetrType.External, ChainApproxMethod.ChainApproxSimple);
+
+                int count = contours.Size;
+                for (int i = 1; i < count; i++)
+                {
+                    using (VectorOfPoint contour = contours[i])
+                    {
+
+                        Rectangle rect = CvInvoke.BoundingRectangle(contour);
+                        if (rect.Height > (plateSize.Height >> 1))
+                        {
+                            rect.X -= 1; rect.Y -= 1; rect.Width += 2; rect.Height += 2;
+                            Rectangle roi = new Rectangle(System.Drawing.Point.Empty, plate.Size);
+                            rect.Intersect(roi);
+                            CvInvoke.Rectangle(plateMask, rect, new MCvScalar(), -1);
+                            //plateMask.Draw(rect, new Gray(0.0), -1);
+                        }
+                    }
+
+                }
+
+                thresh.SetTo(new MCvScalar(), plateMask);
+            }
+
+            CvInvoke.Erode(thresh, thresh, null, new System.Drawing.Point(-1, -1), 1, BorderType.Constant, CvInvoke.MorphologyDefaultBorderValue);
+            CvInvoke.Dilate(thresh, thresh, null, new System.Drawing.Point(-1, -1), 1, BorderType.Constant, CvInvoke.MorphologyDefaultBorderValue);
+
+            return thresh;
         }
 
     }

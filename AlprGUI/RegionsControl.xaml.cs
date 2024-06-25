@@ -44,11 +44,11 @@ namespace AlprGUI
                 await videoCaptureManager.StartProcessingAsync(connection, async frame =>
                 {
                     // Resize the frame to a smaller size
-                    var resizedFrame = videoCaptureManager.ResizeFrame(frame, new System.Drawing.Size(320, 240));
+                   // var resizedFrame = videoCaptureManager.ResizeFrame(frame, new System.Drawing.Size(704, 576));
 
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        imageControl.Source = ToBitmapSource(resizedFrame);
+                        imageControl.Source = ToBitmapSource(frame);
                     });
                 });
             }
@@ -142,7 +142,7 @@ namespace AlprGUI
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
-                bitmapSource.Freeze(); // Размораживаем изображение, чтобы его можно было использовать в разных потоках
+                bitmapSource.Freeze(); 
                 return bitmapSource;
             }
         }

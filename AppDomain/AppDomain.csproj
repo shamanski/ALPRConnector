@@ -18,6 +18,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\source\repos\YOLOv8\Source\YoloV8\YoloV8.csproj" />
+    <ProjectReference Include="..\Nomerator\Nomerator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Reference Include="openalpr-net">
       <HintPath>..\MlNetOnnxAlpr.OpenAlprClient\Dependencies\openalpr-net.dll</HintPath>
     </Reference>

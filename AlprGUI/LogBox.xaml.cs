@@ -26,6 +26,7 @@ namespace AlprGUI
         public LogBox()
         {
             InitializeComponent();
+            LogRichTextBox.TextChanged += LogRichTextBox_TextChanged;
             _loggingLevelSwitch = new LoggingLevelSwitch();
             _loggerConfig = new LoggerConfiguration()
                 .MinimumLevel.ControlledBy(_loggingLevelSwitch)
@@ -44,6 +45,12 @@ namespace AlprGUI
             _loggingLevelSwitch.MinimumLevel = LogEventLevel.Information;
             Log.Information("Debug logging disabled.");
         }
+
+        private void LogRichTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            LogRichTextBox.ScrollToEnd();
+        }
+
 
     }
 }
