@@ -52,7 +52,7 @@ namespace Nomerator
             }
             
             CvInvoke.Resize(frame, _dstBuffer, cropSize);
-            var result = localizationDetector.Detect(frame.ToTensor(), 1.0);
+            var result = localizationDetector.Detect(frame, 1.0);
             var plates = new List<string>();
             foreach (var entry in result.Boxes)
             {

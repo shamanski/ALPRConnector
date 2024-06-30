@@ -132,7 +132,7 @@ namespace AppDomain
                     Mat frameToProcess;
                     lock (_frameLock)
                     {
-                        frameToProcess = _lastFrame.Clone();
+                        frameToProcess = CvInvoke.Imread("9.jpg");//_lastFrame.Clone();
                        // _lastFrame.Dispose();
                     }
 
