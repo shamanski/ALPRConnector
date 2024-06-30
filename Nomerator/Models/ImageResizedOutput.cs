@@ -11,6 +11,8 @@ namespace Nomerator
 
         public NDarray Image { get; set; }
 
+        public float[] Input { get; set; }
+
         public float Ratio { get; set; }
 
         public Mat OutputImageMat { get; set; }

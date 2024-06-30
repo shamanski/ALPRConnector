@@ -66,6 +66,7 @@ namespace Nomerator
                 {
                     var points = keypoints.Boxes[idx].Select(x => new System.Drawing.PointF(x.X * 1, x.Y * 1)).ToArray();
                     using var toOcr = keypoints.OutputImage.Clone();
+                    //CvInvoke.Imwrite("cr2.jpg", toOcr);
                     var textBlock = ocrDetector.Recognize(toOcr, points);
                     plate.Append(textBlock);
                 }

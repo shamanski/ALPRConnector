@@ -66,7 +66,6 @@ namespace Nomerator
             using var gray = new Mat();
 
             CvInvoke.WarpPerspective(image, cropped, rotationMatrix, this.inputSize);
-            //CvInvoke.Imwrite("ocr.jpg", cropped);
             CvInvoke.CvtColor(cropped, gray, ColorConversion.Bgr2Gray);
             var result = model.Recognize(gray).ToUpper();
 

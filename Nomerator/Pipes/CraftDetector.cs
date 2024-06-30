@@ -45,8 +45,9 @@ namespace Nomerator
             this.predictEngine = mlContext.Model.CreatePredictionEngine<CraftInput, CraftOutput>(mlNetModel);
         }
 
-        public DetectionResult Detect(Mat image, float lowText = 0.4f, float textThreshold = 0.5f, float linkThreshold = 0.6f)
+        public DetectionResult Detect(Mat image, float lowText = 0.4f, float textThreshold = 0.7f, float linkThreshold = 0.8f)
         {
+            var xx = image.ToInput();
             int modelInputImageWidth = 512;
             int modelImageHeight = 384;           
             using var inputData = image.ToImageNDarray<byte>();
@@ -65,8 +66,9 @@ namespace Nomerator
 
             // [h, w, c] to [c, h, w]
             using var finaleImage = resizedImageNormalized.transpose(2, 0, 1);
-            var xx = finaleImage.astype(np.float32).GetData<float>()[500000..500010];
-            var result = this.predictEngine.Predict(new CraftInput() { Image = finaleImage.astype(np.float32).GetData<float>() });
+            var xxx = finaleImage.astype(np.float32).GetData<float>();
+ 
+            var result = this.predictEngine.Predict(new CraftInput() { Image = xx.Input });
 
             using var outputArray = np.reshape(result.Output, 1, 192, 256, 2);
             using var textmap = outputArray["0,:,:,0"];
@@ -105,7 +107,7 @@ namespace Nomerator
             {
                 // size filtering
                 var size = (int)stats[k, (int)ConnectedComponentsTypes.Area];
-                if (size < 200)
+                if (size < 1000)
                 {
                     continue;
                 }
@@ -182,7 +184,12 @@ namespace Nomerator
                 box = np.roll(box, new int[] { 4 - startidx }, axis: 0);
                 box = np.array(box);
                 boxes.Add(k, box.ToPointsArray().AdjustResultCoordinates(1, 1));
-                
+
+                var sortedResult = boxes
+                 .OrderBy(kvp => kvp.Value.Min(p => p.X))
+                 .ToArray();
+
+
                 box.Dispose();
             }
 
