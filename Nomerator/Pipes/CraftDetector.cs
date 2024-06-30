@@ -65,7 +65,7 @@ namespace Nomerator
 
             // [h, w, c] to [c, h, w]
             using var finaleImage = resizedImageNormalized.transpose(2, 0, 1);
-
+            var xx = finaleImage.astype(np.float32).GetData<float>()[500000..500010];
             var result = this.predictEngine.Predict(new CraftInput() { Image = finaleImage.astype(np.float32).GetData<float>() });
 
             using var outputArray = np.reshape(result.Output, 1, 192, 256, 2);
