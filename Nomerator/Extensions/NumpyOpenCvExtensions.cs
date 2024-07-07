@@ -124,7 +124,8 @@ namespace Nomerator
         {
             var data = new T[height * width * mat.NumberOfChannels];
             mat.CopyTo<T>(data);
-            return np.reshape(np.array(data), new shape(height, width, channels));
+            var shape = mat.NumberOfChannels > 1 ? new shape(height, width, mat.NumberOfChannels) : new shape(height, width);
+            return np.reshape(np.array(data), shape);
         }
 
         public static PointF[] ToPointsArray(this ndarray arr)

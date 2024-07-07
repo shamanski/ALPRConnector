@@ -164,17 +164,23 @@ namespace Nomerator
 
                 using var kernelMat = CvInvoke.GetStructuringElement(ElementShape.Rectangle, new Size(1 + niter, 1 + niter), new Point(-1, -1));
                 using var dilateMat = new Mat();
-                using var segmapMat = ((ndarray)segmap[$"{sy}:{ey},{sx}:{ex}"]).ToMatImage<byte>();
+                var segmapBounds = (segmap.A($"{sy}:{ey},{sx}:{ex}"));
+                using var segmapMat = segmapBounds.ToMatImage<byte>();
                 CvInvoke.Dilate(segmapMat, dilateMat, kernelMat, new Point(-1, -1), -1, BorderType.Default, new MCvScalar());
 
                 var dilate = dilateMat.ToImageNDarray<byte>();
-                for (var i = sy; i < ey; i++)
+                try
                 {
-                    for (var j = sx; j < ex; j++)
+                    for (var i = sy; i < ey; i++)
                     {
-                        segmap[i, j] = dilate[i - sy, j - sx];
+                        for (var j = sx; j < ex; j++)
+                        {
+                            segmap[i, j] = dilate[i - sy, j - sx];
+                        }
                     }
                 }
+                catch (Exception e) 
+                { }
 
                 // make box
                 var tempArr = np.roll(np.array(np.where(segmap !=0)),  1 , axis: 0);
