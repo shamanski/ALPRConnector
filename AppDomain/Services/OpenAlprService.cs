@@ -11,6 +11,7 @@ using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using Nomerator;
 using Image = SixLabors.ImageSharp.Image;
+using System.Data.Common;
 
 namespace AppDomain
 {
@@ -27,6 +28,7 @@ namespace AppDomain
         private long frames = 0;
         private int threadId = Thread.CurrentThread.ManagedThreadId;
         private Stopwatch stopwatch = new Stopwatch();
+        private VideoCapture videoCapture;
         List<System.Drawing.Rectangle> regions = new List<System.Drawing.Rectangle>();
         public OpenAlprService(string connection)
         {
@@ -40,13 +42,14 @@ namespace AppDomain
 
         public async Task StartProcessingAsync(Func<string, Task> processResult, CancellationToken cancellationToken)
         {
-
-            Log.Information($"Starting processing camera...");           
+            
+            Log.Information($"Starting processing camera {_connection}...");           
 
             _cancellationTokenSource = new CancellationTokenSource();
 
             try
             {
+                videoCapture = new VideoCapture(_connection);
                 var captureTask = Task.Run(async () =>
                 {
                     await CaptureFramesAsync(processResult, cancellationToken);
@@ -66,11 +69,13 @@ namespace AppDomain
 
                 await Task.WhenAny(captureTask, processingTask, aggregationTask);
                 Log.Information("One of the tasks has completed or canceled");
+                videoCapture.Dispose();
                 throw new Exception();
             }
             catch (Exception ex)
             {
                 Log.Error($"Error in StartProcessingAsync: {ex.Message}");
+                videoCapture.Dispose();
                 throw;
             }
         }
@@ -132,7 +137,8 @@ namespace AppDomain
                     Mat frameToProcess;
                     lock (_frameLock)
                     {
-                        frameToProcess = CvInvoke.Imread("9.jpg");//_lastFrame.Clone();
+                         frameToProcess =_lastFrame.Clone();
+                        //_lastFrame = null;
                        // _lastFrame.Dispose();
                     }
 
@@ -151,7 +157,7 @@ namespace AppDomain
                     }
                 }
 
-                Thread.Sleep(30);
+                //Thread.Sleep(30);
             }
 
             Log.Information($"Exiting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
@@ -184,7 +190,7 @@ namespace AppDomain
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                Thread.Sleep(2000);                      
+                Thread.Sleep(3000);                      
                 while (_plates.TryDequeue(out var plate))
                 {
                     platesList.Add(plate);

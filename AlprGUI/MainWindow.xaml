@@ -32,7 +32,7 @@
                 <TextBlock Text="Regions" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
-                <TextBlock Text="Settings" Margin="10" Padding="5"/>
+                <TextBlock Text="Cameras" Margin="10" Padding="5"/>
             </ListBoxItem>
             <ListBoxItem>
                 <TextBlock Text="Virtual COM Ports" Margin="10" Padding="5"/>

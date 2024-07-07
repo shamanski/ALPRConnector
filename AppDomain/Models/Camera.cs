@@ -16,12 +16,15 @@ namespace AppDomain
         public string Protocol { get; set; }
 
         [Required(ErrorMessage = "IP address is required")]
-        [IpAddress(ErrorMessage = "Invalid IP address format")]
+        [AttributeValidators(ErrorMessage = "Invalid IP address format")]
         public string IpAddress { get; set; }
-        
-        public string IpPort { get; set; }
+
+        [Required(ErrorMessage = "Port is required")]
+        [NumericRange(1, 65535, ErrorMessage = "Port must be a number between 1 and 65535")]
+        public string IpPort { get; set; } = "554";      
         public string Login { get; set; }
         public string Password { get; set; }
-        public string RS485Address { get; set; }
+        public string Stream { get; set; } = "0";
+        public string Manufacturer { get; set; }
     }
 }

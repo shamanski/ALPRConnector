@@ -32,10 +32,6 @@ public class PortAdapter : IDisposable, IHealthCheckService
         {
             try
             {
-               
-                Log.Information($"Trying connect to {connection}");
-                Log.Information($"Connected to {connection}");
-
                 var portTask = Task.Run(async () =>
                 {
                     await _comPortService.Run(_reader.ComPortPair.Sender);

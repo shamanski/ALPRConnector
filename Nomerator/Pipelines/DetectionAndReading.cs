@@ -10,6 +10,7 @@ using Size = System.Drawing.Size;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Data;
 using static System.Net.Mime.MediaTypeNames;
+using Emgu.CV.Shape;
 
 namespace Nomerator
 {
@@ -36,7 +37,7 @@ namespace Nomerator
 
         public List<string> Recognize(Mat frame)
         {
-            if (cropSize.IsEmpty)
+          /*  if (cropSize.IsEmpty)
             {
                 if (frame.Width > 600)
                 {
@@ -50,30 +51,44 @@ namespace Nomerator
                     cropSize.Height = frame.Height;
                 }
             }
-            
-            CvInvoke.Resize(frame, _dstBuffer, cropSize);
-            var result = localizationDetector.Detect(frame, 1.0);
+            */
+            //CvInvoke.Resize(frame, _dstBuffer, cropSize);
             var plates = new List<string>();
-            foreach (var entry in result.Boxes)
+            try
             {
-                var r = entry.Bounds;
-                Rectangle rect = new Rectangle(r.Left, r.Top, r.Width, r.Height);
-                using Mat roiImage = new Mat(frame, rect);
-                //CvInvoke.Imwrite("cr.jpg", roiImage);
-                var keypoints = keyPointsDetector.Detect(roiImage);
-                var plate = new StringBuilder();
-                foreach (var idx in keypoints.Boxes.Keys)
+                var result = localizationDetector.Detect(frame, 1.0);
+                foreach (var entry in result.Boxes)
                 {
-                    var points = keypoints.Boxes[idx].Select(x => new System.Drawing.PointF(x.X * 1, x.Y * 1)).ToArray();
-                    using var toOcr = keypoints.OutputImage.Clone();
-                    //CvInvoke.Imwrite("cr2.jpg", toOcr);
-                    var textBlock = ocrDetector.Recognize(toOcr, points);
-                    plate.Append(textBlock);
+                    var r = entry.Bounds;
+                    Rectangle rect = new Rectangle(r.Left, r.Top, r.Width, r.Height);
+                    
+                    using Mat roiImage = new Mat(frame, rect);
+                    var keypoints = keyPointsDetector.Detect(roiImage);
+                    var plate = new StringBuilder();
+                    foreach (var idx in keypoints.Boxes.Keys)
+                    {
+                        var points = keypoints.Boxes[idx].Select(x => new System.Drawing.PointF(x.X * 1, x.Y * 1)).ToArray();
+                        using var toOcr = keypoints.OutputImage.Clone();
+                        keypoints.OutputImage.Dispose();
+                        var textBlock = ocrDetector.Recognize(toOcr, points);
+                        plate.Append(textBlock);
+                    }
+                    if (plate.Length > 3 && plate.Length < 9)
+                    {
+                        plates.Add(plate.ToString());
+                    }
+                    
                 }
-                plates.Add(plate.ToString());
+
+                
             }
 
+            catch (Exception ex)
+            {
+                
+            }
             return plates;
+
         }
 
         private  unsafe Image<Rgb24> MatToImageSharp(Mat mat)

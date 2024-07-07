@@ -14,7 +14,8 @@ namespace AlprGUI
 
         public ObservableCollection<Camera> Cameras { get; set; }
         private AppSettings appSettings { get; set; }
-        
+        private bool _isEditing = false;
+
         public SettingsControl()
         {
             InitializeComponent();
@@ -39,14 +40,36 @@ namespace AlprGUI
         {
             if (CamerasList.SelectedItem is Camera selectedCamera)
             {
-                CameraForm cameraForm = new CameraForm();
-                cameraForm.SaveClicked += SaveCameraButton_Click;
-                cameraForm.CancelClicked += CameraForm_CancelClicked;
                 var camera = cameraManager.GetCameraByName(selectedCamera.Name);
+                CameraForm cameraForm = new CameraForm() { DataContext = camera, Camera = camera };
+                cameraForm.SaveClicked += EditCameraButton_Click;
+                cameraForm.CancelClicked += CameraForm_CancelClicked;              
                 cameraForm.Camera = camera;
                 cameraForm.DataContext = camera;
                 CameraFieldsStackPanel.Children.Add(cameraForm);
                 HideCameraFields();              
+            }
+        }
+
+        private void EditCameraButton_Click(object? sender, CameraEventArgs e)
+        {
+            if (sender is CameraForm cameraForm)
+            {
+                cameraForm.SaveClicked -= EditCameraButton_Click;
+                cameraForm.CancelClicked -= CameraForm_CancelClicked;
+                ChangeVisibility();
+                cameraForm.SaveClicked -= SaveCameraButton_Click;
+                cameraForm.CancelClicked -= CameraForm_CancelClicked;
+                CameraFieldsStackPanel.Children.Remove(cameraForm);
+                try
+                {
+                    cameraManager.EditCamera(e.Camera);
+                }
+                catch (Exception ex)
+                {
+                    MessageBoxResult result = MessageBox.Show(ex.Message);
+                }
+                LoadCamerasFromSettings();
             }
         }
 

@@ -16,9 +16,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical">
+        <StackPanel Grid.Column="0" Grid.Row="0" Orientation="Vertical" Margin="0,5,0,0">
             <TextBlock Text="Name:" VerticalAlignment="Center"/>
             <TextBox x:Name="CameraNameTextBox" Text="{Binding Name}"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Grid.Row="0" Orientation="Vertical" Margin="0,5,0,0">
+            <TextBlock Text="Stream:" VerticalAlignment="Center"/>
+            <TextBox x:Name="CameraStreamTextBox" Text="{Binding Stream}" />
         </StackPanel>
 
         <StackPanel Grid.Column="0" Grid.Row="1" Orientation="Vertical" Margin="0,5,0,0">
@@ -28,7 +33,7 @@
 
         <StackPanel Grid.Column="2" Grid.Row="1" Orientation="Vertical" Margin="0,5,0,0">
             <TextBlock Text="Port:" VerticalAlignment="Center"/>
-            <TextBox x:Name="CameraPortTextBox" Text="{Binding Port}"/>
+            <TextBox x:Name="CameraPortTextBox" Text="{Binding IpPort}"/>
         </StackPanel>
 
         <StackPanel Grid.Column="0" Grid.Row="2" Orientation="Vertical" Margin="0,5,0,0">

@@ -10,11 +10,11 @@
             <TextBlock Text="Manage LPR Readers" FontWeight="Bold" Margin="10"/>
             <StackPanel Orientation="Horizontal" Margin="5">
                 <TextBlock Text="Name:" VerticalAlignment="Center" Width="100"/>
-                <TextBox x:Name="NameTextBox" Width="200"/>
+                <TextBox x:Name="NameTextBox" Width="200" Text="{Binding Name}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="5">
                 <TextBlock Text="RS485 Address:" VerticalAlignment="Center" Width="100"/>
-                <TextBox x:Name="RS485AddrTextBox" Width="200"/>
+                <TextBox x:Name="RS485AddrTextBox" Width="200" Text="{Binding RS485Addr}"/>
             </StackPanel>
             <StackPanel Orientation="Horizontal" Margin="5">
                 <TextBlock Text="Com Port Pair:" VerticalAlignment="Center" Width="100"/>

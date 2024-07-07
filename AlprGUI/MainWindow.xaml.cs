@@ -71,7 +71,7 @@ namespace AlprGUI
                         case "Virtual COM Ports":
                             ShowComPortsContent();
                             break;
-                        case "Settings":
+                        case "Cameras":
                             ShowSettingsContent();
                             break;
                         case "LPR Readers":

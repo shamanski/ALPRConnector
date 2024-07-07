@@ -38,11 +38,10 @@ namespace AlprGUI
         {
             if (LprReadersList.SelectedItem is LprReader selectedReader)
             {
-                var readerForm = new LprReaderForm();
+                
+                var readerForm = new LprReaderForm() { Reader = selectedReader, DataContext = selectedReader };
                 readerForm.SaveClicked += SaveReaderButton_Click;
                 readerForm.CancelClicked += ReaderForm_CancelClicked;
-                readerForm.Reader = selectedReader;
-                readerForm.DataContext = selectedReader;
                 ReaderFieldsStackPanel.Children.Add(readerForm);
                 HideReaderFields();
             }

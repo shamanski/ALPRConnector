@@ -8,4 +8,5 @@ public class AppSettings
     public List<Camera> Cameras { get; set; } = new();
     public List<LprReader> LprReaders { get; set; } = new();
     public bool isVirtualPairUsing { get; set; }
+    public Dictionary<string,string> ConnectionTemplates { get; set; } = new();
 }

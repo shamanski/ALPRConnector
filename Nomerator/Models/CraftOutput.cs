@@ -6,5 +6,8 @@ namespace Nomerator
     {
         [ColumnName("279")]
         public float[] Output;
+
+        [ColumnName("onnx::Conv_269")]
+        public float[] feature;
     }
 }

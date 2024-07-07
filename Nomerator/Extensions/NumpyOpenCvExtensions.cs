@@ -5,19 +5,42 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Rapid;
 using Emgu.CV.Structure;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using Numpy;
-using Numpy.Models;
+
+//using Numpy;using Numpy;
+
+//using Numpy;
+
+//using Numpy.Models;
+using NumpyDotNet;
 
 namespace Nomerator
 {
     public static class NumpyOpenCvExtentions
     {
-        public static Mat ToMatImage<T>(this NDarray npArrary)
+        public static Mat ToMatImage<T>(this ndarray npArrary)
         {
-            var result = new Mat(npArrary.shape[0], npArrary.shape[1], GetDepthType<T>(), npArrary.shape.Dimensions.Length == 3 ? npArrary.shape[2] : 1);
-            var arr = npArrary.GetData<T>();
-            result.SetTo<T>(arr);
-            return result;
+            var result = new Mat((int)npArrary.shape[0], (int)npArrary.shape[1], GetDepthType<T>(), npArrary.shape.iDims.Length == 3 ? (int)npArrary.shape[2] : 1);
+
+            switch ( typeof(T).Name )
+            {
+                case nameof(Single):
+                    {
+                        result.SetTo<float>(npArrary.AsFloatArray());
+                        return result;
+                    }
+
+                case nameof(Byte):
+                    {
+                        result.SetTo<byte>(npArrary.AsByteArray());
+                        return result;
+                    }
+                default: 
+                    {
+                        throw new ArgumentException(typeof(T).Name);
+                    }
+            }
+
+            
         }
 
 
@@ -27,7 +50,7 @@ namespace Nomerator
             int newWidth = (int)(mat.Width * aspectRatio);
             int newHeight = (int)(mat.Height * aspectRatio);
 
-            Mat resizedMat = new Mat();
+            using Mat resizedMat = new Mat();
             CvInvoke.Resize(mat, resizedMat, new Size(newWidth, newHeight), interpolation: Inter.Linear);
 
             var width = resizedMat.Width;
@@ -87,60 +110,111 @@ namespace Nomerator
 
 
 
-        public static NDarray ToImageNDarray<T>(this Mat mat)
+        public static ndarray ToImageNDarray<T>(this Mat mat)
         {
             return ToImageNDarray<T>(mat, mat.Cols, mat.Rows, mat.NumberOfChannels);
         }
 
-        public static NDarray ToImageNDarray(this Mat mat, int width, int height, int channels)
+        public static ndarray ToImageNDarray(this Mat mat, int width, int height, int channels)
         {
             return ToImageNDarray<float>(mat, width, height, channels);
         }
 
-        public static NDarray ToImageNDarray<T>(this Mat mat, int width, int height, int channels)
+        public static ndarray ToImageNDarray<T>(this Mat mat, int width, int height, int channels)
         {
             var data = new T[height * width * mat.NumberOfChannels];
             mat.CopyTo<T>(data);
-            return np.reshape(data, height, width, channels);
+            return np.reshape(np.array(data), new shape(height, width, channels));
         }
 
-        public static PointF[] ToPointsArray(this NDarray arr)
+        public static PointF[] ToPointsArray(this ndarray arr)
         {
-            var points = new List<PointF>();
-            for (var i = 0; i < arr.shape[0]; i++)
+            int length = (int)arr.shape[0];
+            PointF[] points = new PointF[length];
+
+            for (int i = 0; i < length; i++)
             {
-                points.Add(new PointF((float)arr[i, 0], (float)arr[i, 1]));
+                points[i] = new PointF((float)arr[i, 0], (float)arr[i, 1]);
             }
 
-            return points.ToArray();
+            return points;
         }
 
-        public static NDarray FromPointsArray(this PointF[] points)
+        public static ndarray FromPointsArray(this PointF[] points)
         {
-            var result = np.zeros(new Shape(points.Length, 2), np.float32);
+            var result = np.zeros(new shape(points.Length, 2), np.Float32);
             for (var i = 0; i < points.Length; i++)
             {
-                result[i, 0] = (NDarray)points[i].X;
-                result[i, 1] = (NDarray)points[i].Y;
+                result[i, 0] = points[i].X;
+                result[i, 1] = points[i].Y;
             }
 
             return result;
         }
 
-        public static NDarray WhereFlags<T>(this NDarray input, NDarray flags, Func<bool, T, T> func)
+        public static ndarray WhereFlags<T>(this ndarray input, ndarray flags, Func<bool, T, T> func)
         {
             var result = new List<T>();
-            var data = input.GetData<T>();
-            var flagsValues = flags.GetData<bool>();
+            var data = GetArrayData<T>(input);
+
+            var flagsValues = flags.AsBoolArray();
 
             for (var i = 0; i < data.Length; i++)
             {
                 result.Add(func(flagsValues[i], data[i]));
             }
 
-            using var flat = new NDarray<T>(result.ToArray());
+            var flat =  np.array(result.ToArray());
 
             return np.reshape(flat, input.shape);
+        }
+
+        public static T[] GetArrayData<T>(ndarray input) 
+        {
+            if (typeof(T) == typeof(float))
+            {
+                return input.AsFloatArray() as T[];
+            }
+            else if (typeof(T) == typeof(byte))
+            {
+                return input.AsByteArray() as T[];
+            }
+            else if (typeof(T) == typeof(bool))
+            {
+                return input.AsBoolArray() as T[];
+            }
+            else
+            {
+                throw new ArgumentException($"Unsupported type: {typeof(T).Name}");
+            }
+        }
+
+        public static Mat WhereFlags<T>(this Mat input, Mat flags, Func<bool, T, T> func) where T : struct
+        {
+            if (input.Size != flags.Size || input.Depth != flags.Depth || flags.Depth != DepthType.Cv8U)
+            {
+                throw new ArgumentException("Input and flags Mat must have the same size and depth, and flags must be of type CV_8U.");
+            }
+
+            T[] inputData = new T[input.Width*input.Height];
+            input.CopyTo<T>(inputData);
+            var flagsData = flags.GetRawData();
+
+            var result = new T[input.Rows * input.Cols];
+
+            for (var i = 0; i < result.Length; i++)
+            {
+                bool flag = flagsData[i] != 0;
+                T data = (T)Convert.ChangeType(inputData[i], typeof(T));
+                result[i] = func(flag, data);
+            }
+
+            var resultMat = new Mat(input.Rows, input.Cols, input.Depth, 1);
+
+            // Fill the result Mat with the processed data
+            //Marshal.Copy(result.Cast<object>().ToArray(), 0, resultMat.DataPointer, result.Length);
+
+            return resultMat;
         }
 
         private static DepthType GetDepthType<T>()

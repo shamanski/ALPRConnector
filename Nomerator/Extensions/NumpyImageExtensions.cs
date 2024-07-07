@@ -2,13 +2,13 @@
 using Emgu.CV;
 using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
-using Numpy;
+using NumpyDotNet;
 
 namespace Nomerator
 {
     public static class NumpyImageExtentions
     {
-        public static NDarray LoadRgbImage(this string filename)
+        public static ndarray LoadRgbImage(this string filename)
         {
             using var imageMat = new Mat(filename, loadType: ImreadModes.Color);
 
@@ -32,26 +32,26 @@ namespace Nomerator
             return polys;
         }
 
-        public static NDarray NormalizeMeanVariance(this NDarray in_img, NDarray mean, NDarray variance)
+        /*public static ndarray NormalizeMeanVariance(this ndarray in_img, ndarray mean, ndarray variance)
         {
             // should be RGB order
-            var img = in_img.copy().astype(np.float32);
+            var img = in_img.Copy().astype(np.Float32);
 
-            img -= np.array(new NDarray[] { mean[0] * 255.0, mean[1] * 255.0, mean[2] * 255.0 }, dtype: np.float32);
-            img /= np.array(new NDarray[] { variance[0] * 255.0, variance[1] * 255.0, variance[2] * 255.0 }, dtype: np.float32);
+            img -= np.array(new ndarray[] { mean[0] * 255.0, mean[1] * 255.0, mean[2] * 255.0 }, dtype: np.float32);
+            img /= np.array(new ndarray[] { variance[0] * 255.0, variance[1] * 255.0, variance[2] * 255.0 }, dtype: np.float32);
 
             return img;
-        }
+        }*/
 
-        public static Mat Cvt2HeatmapImg(this NDarray img)
+       /* public static Mat Cvt2HeatmapImg(this NDarray img)
         {
             img = (np.clip(img, (NDarray)0, (NDarray)1) * 255).astype(np.uint8);
             var matImg = new Mat();
             CvInvoke.ApplyColorMap(img.ToMatImage<byte>(), matImg, ColorMapType.Jet);
             return matImg;
-        }
+        }*/
 
-        public static ImageResizeOutput ResizeAspectRatio(this NDarray img, float width_target, float height_target, Inter interpolation, float mag_ratio = 1)
+       /* public static ImageResizeOutput ResizeAspectRatio(this NDarray img, float width_target, float height_target, Inter interpolation, float mag_ratio = 1)
         {
             var height = img.shape[0];
             var width = img.shape[1];
@@ -117,7 +117,7 @@ namespace Nomerator
                    // AddedPadding = null
                 };
             }
-        }
+        }*/
 
     }
 }

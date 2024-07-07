@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 using Emgu.CV;
-using Numpy;
+using NumpyDotNet;
 
 namespace Nomerator
 {
@@ -12,9 +12,9 @@ namespace Nomerator
 
         public Dictionary<int, PointF[]> Boxes { get; set; }
 
-        public NDarray ScoreText { get; set; }
+        public ndarray ScoreText { get; set; }
 
-        public NDarray ScoreLink { get; set; }
+        public ndarray ScoreLink { get; set; }
 
         ~DetectionResult()
         {
@@ -32,17 +32,7 @@ namespace Nomerator
             if (disposed)
             {
                 return;
-            }
-
-            if (this.ScoreText != null)
-            {
-                this.ScoreText.Dispose();
-            }
-
-            if (this.ScoreLink != null)
-            {
-                this.ScoreLink.Dispose();
-            }
+            }           
 
             this.disposed = true;
         }

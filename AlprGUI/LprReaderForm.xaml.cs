@@ -30,7 +30,7 @@ namespace AlprGUI
             ComPortPairs = new ObservableCollection<ComPortPair>(portsManager.GetAll());
             Cameras = new ObservableCollection<Camera>(cameraManager.GetAll());
 
-            this.DataContext = this;
+            this.DataContext = Reader;
 
             ComPortPairComboBox.ItemsSource = ComPortPairs;
             if (ComPortPairs.Count > 0)
@@ -57,7 +57,9 @@ namespace AlprGUI
             {
                 Name = NameTextBox.Text,
                 RS485Addr = rs485Addr,
+                ComPortPairName= ComPortPairComboBox.Text,
                 ComPortPair = ComPortPairComboBox.SelectedItem as ComPortPair,
+                CameraName = CameraComboBox.Text,
                 Camera = CameraComboBox.SelectedItem as Camera
             };
 

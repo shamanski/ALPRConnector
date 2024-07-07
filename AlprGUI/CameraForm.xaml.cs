@@ -11,7 +11,7 @@ namespace AlprGUI
     {
         public event EventHandler<CameraEventArgs> SaveClicked;
         public event EventHandler CancelClicked;
-        public Camera Camera { get; set; }
+        public Camera Camera { get; set; } = new Camera();
 
         public CameraForm()
         {
