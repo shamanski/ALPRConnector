@@ -75,15 +75,7 @@ namespace Nomerator
             };
 
             using IDisposableReadOnlyCollection<OrtValue> refinerResults = _session.Run(runOptions, inputs2, _session.OutputNames);
-           // var outputShape = new shape(1, 192, 256, 2);
-           // var outputArray = np.array(result.Output).reshape(outputShape);
-           // var textmap = (ndarray)outputArray["0,:,:,0"];
-           // var linkArray = np.array(refinerResults[0].GetTensorDataAsSpan<float>().ToArray());
-
-           // var linkmap = np.reshape(linkArray, new shape(192, 256));//outputArray["0,:,:,1"];
-
             var outputSize = new Size(256, 192);
-            var outputArray2 = result.Output;
 
             var textmap = new Mat(outputSize, DepthType.Cv32F, 1);         
             var linkmap = new Mat(outputSize, DepthType.Cv32F, 1);
@@ -92,18 +84,12 @@ namespace Nomerator
             var img_h = 192;
             var img_w = 256;
 
-            //using Mat textmapMat = textmap.ToMatImage<float>();
             using Mat textScoreThresholded = new Mat();
             using Mat textScoreThresholded2 = new Mat();
             CvInvoke.Threshold(textmap, textScoreThresholded, lowText, 1, ThresholdType.Binary);
-
-            //CvInvoke.Threshold(textmap2, textScoreThresholded2, lowText, 1, ThresholdType.Binary);
-
-            //using Mat linkmapMat = linkmap.ToMatImage<float>();
             using Mat linkScoreThresholded = new Mat();
             using Mat linkScoreThresholded2 = new Mat();
             CvInvoke.Threshold(linkmap, linkScoreThresholded, linkThreshold, 1, ThresholdType.Binary);
-            //CvInvoke.Threshold(linkmap2, linkScoreThresholded2, linkThreshold, 1, ThresholdType.Binary);
             var scoreText = textScoreThresholded.ToImageNDarray<float>();
             var scoreLink = linkScoreThresholded.ToImageNDarray<float>();
 
@@ -193,8 +179,6 @@ namespace Nomerator
                 var v2 = Vector<float>.Build.DenseOfArray([(float)box[2, 0], (float)box[2, 1]]);
                 float boxW = (float)v0.Subtract(v1).L2Norm();
                 float boxH = (float)v1.Subtract(v2).L2Norm();
-                //var boxW = (float)np.linalg.norm(box[0] - box[1]);
-                //var boxH = (float)np.linalg.norm(box[1] - box[2]);
                 var box_ratio = Math.Max(boxW, boxH) / (Math.Min(boxW, boxH) + 1e-5);
                 if (Math.Abs(1 - box_ratio) <= 0.2)
                 {
