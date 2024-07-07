@@ -75,34 +75,34 @@ namespace Nomerator
             };
 
             using IDisposableReadOnlyCollection<OrtValue> refinerResults = _session.Run(runOptions, inputs2, _session.OutputNames);
-            var outputShape = new shape(1, 192, 256, 2);
-            var outputArray = np.array(result.Output).reshape(outputShape);
-            var textmap = (ndarray)outputArray["0,:,:,0"];
-            var linkArray = np.array(refinerResults[0].GetTensorDataAsSpan<float>().ToArray());
+           // var outputShape = new shape(1, 192, 256, 2);
+           // var outputArray = np.array(result.Output).reshape(outputShape);
+           // var textmap = (ndarray)outputArray["0,:,:,0"];
+           // var linkArray = np.array(refinerResults[0].GetTensorDataAsSpan<float>().ToArray());
 
-            var linkmap = np.reshape(linkArray, new shape(192, 256));//outputArray["0,:,:,1"];
+           // var linkmap = np.reshape(linkArray, new shape(192, 256));//outputArray["0,:,:,1"];
 
-            //var outputSize = new Size(256, 192);
-            //var outputArray2 = result.Output;
+            var outputSize = new Size(256, 192);
+            var outputArray2 = result.Output;
 
-            //var textmap2 = new Mat(outputSize, DepthType.Cv32F, 1);         
-            //var linkmap2 = new Mat(outputSize, DepthType.Cv32F, 1);
-            //FillMatFromArray3D(textmap2, result.Output);
-            //linkmap2.SetTo<float>(refinerResults.First().AsEnumerable<float>().ToArray());
-            var img_h = (int)textmap.shape[0];
-            var img_w = (int)textmap.shape[1];
+            var textmap = new Mat(outputSize, DepthType.Cv32F, 1);         
+            var linkmap = new Mat(outputSize, DepthType.Cv32F, 1);
+            FillMatFromArray3D(textmap, result.Output);
+            linkmap.SetTo<float>(refinerResults[0].GetTensorDataAsSpan<float>().ToArray());
+            var img_h = 192;
+            var img_w = 256;
 
-            using Mat textmapMat = textmap.ToMatImage<float>();
+            //using Mat textmapMat = textmap.ToMatImage<float>();
             using Mat textScoreThresholded = new Mat();
             using Mat textScoreThresholded2 = new Mat();
-            CvInvoke.Threshold(textmapMat, textScoreThresholded, lowText, 1, ThresholdType.Binary);
+            CvInvoke.Threshold(textmap, textScoreThresholded, lowText, 1, ThresholdType.Binary);
 
             //CvInvoke.Threshold(textmap2, textScoreThresholded2, lowText, 1, ThresholdType.Binary);
 
-            using Mat linkmapMat = linkmap.ToMatImage<float>();
+            //using Mat linkmapMat = linkmap.ToMatImage<float>();
             using Mat linkScoreThresholded = new Mat();
             using Mat linkScoreThresholded2 = new Mat();
-            CvInvoke.Threshold(linkmapMat, linkScoreThresholded, linkThreshold, 1, ThresholdType.Binary);
+            CvInvoke.Threshold(linkmap, linkScoreThresholded, linkThreshold, 1, ThresholdType.Binary);
             //CvInvoke.Threshold(linkmap2, linkScoreThresholded2, linkThreshold, 1, ThresholdType.Binary);
             var scoreText = textScoreThresholded.ToImageNDarray<float>();
             var scoreLink = linkScoreThresholded.ToImageNDarray<float>();
@@ -132,7 +132,7 @@ namespace Nomerator
                 }
 
                 var labelFlags = labels ==  k;
-                var textMapArr = textmap.WhereFlags<float>(labelFlags, (flag, elem) => flag ? elem : 0.0f);
+                var textMapArr = textmap.ToImageNDarray<float>().WhereFlags<float>(labelFlags, (flag, elem) => flag ? elem : 0.0f);
 
       
                 if ((float)np.max(textMapArr) < textThreshold)
@@ -141,7 +141,7 @@ namespace Nomerator
                 }
 
                 // make segmentation map
-                var segmapZero = np.zeros(textmap.shape, dtype: np.UInt8);
+                var segmapZero = np.zeros(new shape(192,256 ), dtype: np.UInt8);
                 var segmap1 = segmapZero.WhereFlags<byte>(labelFlags, (flag, elem) => (byte)(flag ? 255 : 0));
                 var segmap = segmap1.WhereFlags<byte>(np.logical_and(scoreLink ==1, scoreText ==0 ), (flag, elem) => (byte)(flag ? 0 : elem));
 
