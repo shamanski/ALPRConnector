@@ -141,6 +141,19 @@ namespace Nomerator
             return points;
         }
 
+        public static PointF[] ToPointsFloatArray(this ndarray arr)
+        {
+            int length = (int)arr.shape[0];
+            PointF[] points = new PointF[length];
+
+            for (int i = 0; i < length; i++)
+            {
+                points[i] = new PointF((float)arr[i, 0], (float)arr[i, 1]);
+            }
+
+            return points;
+        }
+
         public static ndarray FromPointsArray(this PointF[] points)
         {
             var result = np.zeros(new shape(points.Length, 2), np.Float32);

@@ -206,10 +206,10 @@ namespace Nomerator
                 }
 
                 // make clock-wise order
-                var startidx = (int)box.Sum(axis: 1).AMin();
+                var startidx = (int)(float)box.Sum(axis: 1).AMin();
                 box = np.roll(box,  4 - startidx , axis: 0);
                 box = np.array(box);
-                boxes.Add(k, box.ToPointsArray().AdjustResultCoordinates(1, 1));
+                boxes.Add(k, box.ToPointsFloatArray().AdjustResultCoordinates(1, 1));
             }
  
             return new DetectionResult
