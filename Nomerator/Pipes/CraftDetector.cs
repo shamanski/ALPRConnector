@@ -206,7 +206,7 @@ namespace Nomerator
                 }
 
                 // make clock-wise order
-                var startidx = (int)(float)box.Sum(axis: 1).AMin();
+                var startidx = (int)(long)box.Sum(axis: 1).ArgMin(0);
                 box = np.roll(box,  4 - startidx , axis: 0);
                 box = np.array(box);
                 boxes.Add(k, box.ToPointsFloatArray().AdjustResultCoordinates(1, 1));

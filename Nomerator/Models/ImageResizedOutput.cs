@@ -1,7 +1,7 @@
 ﻿
 using System;
 using Emgu.CV;
-using Numpy;
+using NumpyDotNet;
 
 namespace Nomerator
 {
@@ -9,7 +9,7 @@ namespace Nomerator
     {
         private bool disposed = false;
 
-        public NDarray Image { get; set; }
+        public ndarray Image { get; set; }
 
         public float[] Input { get; set; }
 
@@ -33,11 +33,6 @@ namespace Nomerator
             if (disposed)
             {
                 return;
-            }
-
-            if (this.Image != null)
-            {
-                this.Image.Dispose();
             }
 
             this.disposed = true;
