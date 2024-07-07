@@ -135,7 +135,7 @@ namespace Nomerator
 
             for (int i = 0; i < length; i++)
             {
-                points[i] = new PointF((float)arr[i, 0], (float)arr[i, 1]);
+                points[i] = new PointF((byte)arr[i, 0], (byte)arr[i, 1]);
             }
 
             return points;
