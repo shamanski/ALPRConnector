@@ -24,8 +24,8 @@ namespace AppDomain
         private long frames = 0;
         private int threadId = Thread.CurrentThread.ManagedThreadId;
         private Stopwatch stopwatch = new Stopwatch();
-        List<Rectangle> regions = new List<Rectangle>();
-        private object _framelock;
+        private List<Rectangle> regions = new List<Rectangle>();
+        private List<string> platesList = new List<string>(64);
 
         public OpenAlprService(string connection)
         {
@@ -75,7 +75,7 @@ namespace AppDomain
             Log.Information($"Starting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
             DateTime lastFrameTime = DateTime.Now;
             using var videoCapture = new VideoCapture(_connection);
-            videoCapture.Set(CapProp.Buffersize, 2);
+            videoCapture.Set(CapProp.Buffersize, 2.0);
             if (!videoCapture.IsOpened)
             {
                 Log.Error("Error connecting to camera... Restart.");
@@ -88,6 +88,7 @@ namespace AppDomain
             //await processResult("CAMREADY");
             while (!cancellationToken.IsCancellationRequested)
             {
+                videoCapture.Set(CapProp.PosFrames, videoCapture.Get(CapProp.FrameCount) - 1);
                 videoCapture.Read(frame);
                 if (frame == null)
                 {
@@ -141,7 +142,6 @@ namespace AppDomain
             Log.Information($"Starting AggregatePlatesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
 
             var mostCommonPlate = string.Empty;
-            var platesList = new List<string>(64);
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -202,7 +202,7 @@ namespace AppDomain
         {
             await Task.Delay(10);
             stopwatch.Stop();
-            int fps = frames == 0 ? 0 : (int)(frames / stopwatch.Elapsed.TotalSeconds);
+            double fps = frames == 0 ? 0.0 : frames / stopwatch.Elapsed.TotalSeconds;
             frames = 0;
             stopwatch.Restart();
             return $"Thread {threadId} LPR recognition service:  {fps} frames/sec";

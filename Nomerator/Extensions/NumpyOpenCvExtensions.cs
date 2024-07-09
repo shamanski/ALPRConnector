@@ -1,4 +1,5 @@
 ﻿using System.Drawing;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
@@ -101,6 +102,7 @@ namespace Nomerator
                     buffer[stride * 2 + targetIndex] = (b - 0.406f) / 0.225f;
                 }
             }
+
             return new ImageResizeOutput
             {
                 OutputImageMat = paddedImageMat,
@@ -126,19 +128,6 @@ namespace Nomerator
             mat.CopyTo<T>(data);
             var shape = mat.NumberOfChannels > 1 ? new shape(height, width, mat.NumberOfChannels) : new shape(height, width);
             return np.reshape(np.array(data), shape);
-        }
-
-        public static PointF[] ToPointsArray(this ndarray arr)
-        {
-            int length = (int)arr.shape[0];
-            PointF[] points = new PointF[length];
-
-            for (int i = 0; i < length; i++)
-            {
-                points[i] = new PointF((float)(long)arr[i, 0], (float)(long)arr[i, 1]);
-            }
-
-            return points;
         }
 
         public static PointF[] ToPointsFloatArray(this ndarray arr)
