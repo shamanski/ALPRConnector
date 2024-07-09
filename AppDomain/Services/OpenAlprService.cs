@@ -103,17 +103,11 @@ namespace AppDomain
                 }
                 try
                 {
-                    using var frameToProcess = frame.Clone();
-                    sw.Start();
-                    var plates = _predictor.Recognize(frameToProcess);                   
-                    foreach (var pl in plates)
+                    using var processFrame = frame.Clone();
+                    foreach (var plate in _predictor.Recognize(processFrame))
                     {
-                        _plates.Enqueue(pl);
+                        _plates.Enqueue(plate);
                     }
-
-                    sw.Stop();
-                    Log.Debug($"Detection time:{sw.ElapsedMilliseconds} ms");
-                    sw.Reset();
                 }
                 catch (Exception ex)
                 {

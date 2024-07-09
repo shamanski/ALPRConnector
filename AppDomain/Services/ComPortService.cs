@@ -6,9 +6,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Ports;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 public class ComPortService : IDisposable, IHealthCheckService
 {
@@ -18,7 +15,7 @@ public class ComPortService : IDisposable, IHealthCheckService
     private readonly SemaphoreSlim _lpSemaphore = new SemaphoreSlim(1, 1);
     private long requests = 0;
     private int threadId = Thread.CurrentThread.ManagedThreadId;
-    private Stopwatch stopwatch;
+    private byte[] answ;
 
     public ComPortService()
     {
@@ -26,8 +23,9 @@ public class ComPortService : IDisposable, IHealthCheckService
         _ports = new ConcurrentDictionary<string, SerialPort>();
         _rs485Addresses = new ConcurrentDictionary<int, string>();
         _lpDictionary = new ConcurrentDictionary<(string portName, int rs485Address), string>();
-        stopwatch = new Stopwatch();
         Log.Information("COM port service started");
+        answ = new byte[10];
+        Stopwatch stopwatch;
     }
 
     public async Task Run(string portName)
@@ -61,14 +59,12 @@ public class ComPortService : IDisposable, IHealthCheckService
 
     private void ListenPort(string portName)
     {
-        threadId = Thread.CurrentThread.ManagedThreadId;
+        Log.Information($"Starting COM port listening on thread: {Thread.CurrentThread.ManagedThreadId}");
         var serialPort = _ports[portName];
         byte caH = 0, caL = 0, caC = 0;
-        Thread.Sleep(18);
-        stopwatch.Start();
         while (true)
         {
-            Thread.Sleep(18);
+            Thread.Sleep(12);
             if (serialPort.BytesToRead > 2)
             {
                 try
@@ -139,7 +135,6 @@ public class ComPortService : IDisposable, IHealthCheckService
 
     private void SendResponse(SerialPort port, int rs485Address, string lp)
     {
-        byte[] answ = new byte[10];
         answ[0] = 0x40;
 
         int index = 1;

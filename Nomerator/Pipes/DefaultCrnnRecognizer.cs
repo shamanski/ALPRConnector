@@ -1,22 +1,14 @@
-﻿using System;
-using System.Drawing;
-using System.IO;
+﻿using System.Drawing;
 using Emgu.CV;
-using Emgu.CV.CvEnum;
 using Emgu.CV.Dnn;
-using Emgu.CV.Reg;
 using Emgu.CV.Structure;
-using Microsoft.ML.OnnxRuntime;
-using Microsoft.ML.OnnxRuntime.Tensors;
 
 namespace Nomerator
 {
     public class DefaultCrnnTextRecognizer : IDisposable
     {
         private bool disposed = false;
-
         private readonly TextRecognitionModel model;
-
         private readonly Size inputSize;
 
         public DefaultCrnnTextRecognizer(string modelFile = "c:/1/attempt4.onnx", string vocabularyFile = "alphabet_36.txt") //CRNN_VGG_BiLSTM_CTC.
