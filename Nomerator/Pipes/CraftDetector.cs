@@ -82,14 +82,14 @@ namespace Nomerator
             using IDisposableReadOnlyCollection<OrtValue> refinerResults = _session.Run(_runOptions, inputs2, _session.OutputNames);
             ss.Stop();
             Log.Debug($"Box: {ss.ElapsedMilliseconds} ms");
-            var outputSize = new Size(320, 96);
+            var outputSize = new Size(160, 48);
 
             using var textmap = new Mat(outputSize, DepthType.Cv32F, 1);         
             using var linkmap = new Mat(outputSize, DepthType.Cv32F, 1);
             FillMatFromArray3D(textmap, result.Output);
             linkmap.SetTo<float>(refinerResults[0].GetTensorDataAsSpan<float>().ToArray());
-            var img_h = 96;
-            var img_w = 320;
+            var img_h = 48;
+            var img_w = 160;
 
             using Mat textScoreThresholded = new Mat();
             using Mat textScoreThresholded2 = new Mat();
@@ -121,7 +121,7 @@ namespace Nomerator
             {
                 // size filtering
                 var size = (int)stats[k, (int)ConnectedComponentsTypes.Area];
-                if (size < 200)
+                if (size < 100)
                 {
                     continue;
                 }
@@ -136,7 +136,7 @@ namespace Nomerator
                 }
 
                 // make segmentation map
-                var segmapZero = np.zeros(new shape(96, 320), dtype: np.UInt8);
+                var segmapZero = np.zeros(new shape(48, 160), dtype: np.UInt8);
                 var segmap1 = segmapZero.WhereFlags<byte>(labelFlags, (flag, elem) => (byte)(flag ? 255 : 0));
                 var segmap = segmap1.WhereFlags<byte>(np.logical_and(scoreLink ==1, scoreText ==0 ), (flag, elem) => (byte)(flag ? 0 : elem));
 
