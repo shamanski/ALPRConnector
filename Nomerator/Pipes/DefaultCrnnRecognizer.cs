@@ -68,7 +68,7 @@ namespace Nomerator
 
             CvInvoke.WarpPerspective(image, cropped, rotationMatrix, this.inputSize);
 
-            CvInvoke.Imwrite("ready-to-ocr.jpg", cropped);
+            //CvInvoke.Imwrite("ready-to-ocr.jpg", cropped);
             var result = model.Recognize(cropped).ToUpper();
             return result?.Replace("\r", string.Empty);
         }

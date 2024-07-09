@@ -20,112 +20,50 @@ namespace Nomerator
         private CraftDetector keyPointsDetector;
         private DefaultCrnnTextRecognizer ocrDetector;
         private bool disposed = false;
-        private Mat rgbMat;
-        private Mat _dstBuffer;
-        private Size cropSize;
-        private double ratio;
 
         public DetectionAndReading()
         {
             localizationDetector = YoloV8Predictor.Create("model.onnx");
-            keyPointsDetector = new CraftDetector("craft-var.onnx");
+            keyPointsDetector = new CraftDetector("attempt-craft1.onnx");
             ocrDetector = new DefaultCrnnTextRecognizer("CRNN_VGG_BiLSTM_CTC.onnx");
-            rgbMat = new Mat();
-            _dstBuffer = new Mat();
-            ratio = 1.0;
         }
 
-        public List<string> Recognize(Mat frame)
+        public IEnumerable<string> Recognize(Mat frame)
         {
-          /*  if (cropSize.IsEmpty)
+            /*Numberplate detection*/
+            var result = localizationDetector.Detect(frame, 1.0);
+               
+            foreach (var entry in result.Boxes)
             {
-                if (frame.Width > 600)
+                var r = entry.Bounds;
+                Rectangle rect = new Rectangle(r.Left, r.Top, r.Width, r.Height);
+                using Mat roiImage = new Mat(frame, rect);
+
+                /*Numberplate box detection*/
+                using var keypoints = keyPointsDetector.Detect(roiImage);
+
+                var plate = new StringBuilder();
+                foreach (var idx in keypoints.Boxes.Keys)
                 {
-                    ratio = frame.Width / 600;
-                    cropSize.Width = 600;
-                    cropSize.Height = (int)(frame.Height / ratio);
-                }
-                else
-                {
-                    cropSize.Width = frame.Width; 
-                    cropSize.Height = frame.Height;
-                }
-            }
-            */
-            //CvInvoke.Resize(frame, _dstBuffer, cropSize);
-            var plates = new List<string>();
-            try
-            {
-                var result = localizationDetector.Detect(frame, 1.0);
-                foreach (var entry in result.Boxes)
-                {
-                    var r = entry.Bounds;
-                    Rectangle rect = new Rectangle(r.Left, r.Top, r.Width, r.Height);
+                    var points = keypoints.Boxes[idx].Select(x => new System.Drawing.PointF(x.X * 1, x.Y * 1)).ToArray();
+                    using var toOcr = keypoints.OutputImage.Clone();
+
+                    /*Numberplate text recognition*/
+                    var textBlock = ocrDetector.Recognize(toOcr, points);
                     
-                    using Mat roiImage = new Mat(frame, rect);
-                    var keypoints = keyPointsDetector.Detect(roiImage);
-                    var plate = new StringBuilder();
-                    foreach (var idx in keypoints.Boxes.Keys)
-                    {
-                        var points = keypoints.Boxes[idx].Select(x => new System.Drawing.PointF(x.X * 1, x.Y * 1)).ToArray();
-                        using var toOcr = keypoints.OutputImage.Clone();
-                        keypoints.OutputImage.Dispose();
-                        var textBlock = ocrDetector.Recognize(toOcr, points);
-                        plate.Append(textBlock);
-                    }
-                    if (plate.Length > 3 && plate.Length < 9)
-                    {
-                        plates.Add(plate.ToString());
-                    }
-                    
+                    plate.Append(textBlock);
                 }
-
-                
-            }
-
-            catch (Exception ex)
-            {
-                
-            }
-            return plates;
-
-        }
-
-        private  unsafe Image<Rgb24> MatToImageSharp(Mat mat)
-        {           
-            CvInvoke.CvtColor(mat, rgbMat, ColorConversion.Bgr2Rgb);
-
-            byte* dataPtr = (byte*)rgbMat.DataPointer;
-
-            int width = rgbMat.Width;
-            int height = rgbMat.Height;
-            int stride = rgbMat.Step;
-            Memory<Rgb24> memory = new Memory<Rgb24>(new Rgb24[width * height]);
-
-            for (int y = 0; y < height; y++)
-            {
-                for (int x = 0; x < width; x++)
+                if (plate.Length == 0)
                 {
-                    byte* pixel = dataPtr + y * stride + x * 3;
-                    memory.Span[y * width + x] = new Rgb24(pixel[0], pixel[1], pixel[2]);
+                    continue;
+                }
+
+                if (plate.Length > 3 && plate.Length < 9)
+                {
+                    yield return plate.ToString();
                 }
             }
-
-            var imageSharp = Image.WrapMemory(memory, width, height);
-
-
-            return imageSharp;
         }
-    
-
-        /*  private static Image<Rgb24> MatToImageSharp(Mat mat)
-          {
-              var data = mat.DataPointer;
-              var imageSharp = Image.WrapMemory<Rgb24>(data, mat.Width, mat.Height);
-              using Image<Rgb, byte> afterImage = mat.ToImage<Rgb, byte>();
-              byte[] afterbytes = afterImage.Bytes;
-              return Image.LoadPixelData<Rgb24>(afterbytes, mat.Width, mat.Height);            
-          }*/
 
         public void Dispose()
         {

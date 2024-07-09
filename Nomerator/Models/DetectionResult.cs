@@ -18,12 +18,12 @@ namespace Nomerator
 
         ~DetectionResult()
         {
-            this.Dispose(false);
+            Dispose(false);
         }
 
         public void Dispose()
         {
-            this.Dispose(true);
+            Dispose(true);
             GC.SuppressFinalize(this);
         }
 
@@ -32,9 +32,15 @@ namespace Nomerator
             if (disposed)
             {
                 return;
-            }           
+            }
 
-            this.disposed = true;
+            if (disposing)
+            {
+
+                OutputImage?.Dispose();
+            }
+
+            disposed = true;
         }
     }
 }

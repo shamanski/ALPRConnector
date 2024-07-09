@@ -1,18 +1,15 @@
 ﻿
-using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Runtime.InteropServices;
-using Compunet.YoloV8.Utilities;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.Features2D;
 using Emgu.CV.Structure;
 using Microsoft.ML;
 using Microsoft.ML.OnnxRuntime;
 using Microsoft.ML.OnnxRuntime.Tensors;
 using MathNet.Numerics.LinearAlgebra;
 using NumpyDotNet;
+using System.Diagnostics;
+using Serilog;
 
 namespace Nomerator
 {
@@ -23,66 +20,76 @@ namespace Nomerator
 
         private readonly PredictionEngine<CraftInput, CraftOutput> predictEngine;
         private InferenceSession _session;
-        RunOptions runOptions;
+        private RunOptions _runOptions;
 
     private bool disposed = false;
 
-        public CraftDetector(string modelFile = "craft-var.onnx", int modelImageWidth = 512, int modelImageHeight = 384)
+        public CraftDetector(string modelFile = "attempt-craft1.onnx", int modelImageWidth = 320, int modelImageHeight = 96)
         {
             this.modelFile = modelFile;
 
-            this.mlContext = new MLContext();
+            mlContext = new MLContext();
 
             var dataView = mlContext.Data.LoadFromEnumerable(new List<CraftInput>());
             
             var pipeline = mlContext.Transforms.ApplyOnnxModel(
                     modelFile: this.modelFile,
                     outputColumnNames: new[] {
-                               "279", "onnx::Conv_269"},
+                               "285", "onnx::Conv_275"},
                     inputColumnNames: new[] {
                                "input.1"});
 
             var mlNetModel = pipeline.Fit(dataView);
 
-            this.predictEngine = mlContext.Model.CreatePredictionEngine<CraftInput, CraftOutput>(mlNetModel);
-            this._session = new InferenceSession("c:/1/refine.onnx");
-            runOptions = new RunOptions();
+            predictEngine = mlContext.Model.CreatePredictionEngine<CraftInput, CraftOutput>(mlNetModel);
+            var opts = new SessionOptions()
+            {
+                IntraOpNumThreads = 4,
+                ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
+                InterOpNumThreads = 1,
+                GraphOptimizationLevel = GraphOptimizationLevel.ORT_ENABLE_ALL,
+            };
+            _session = new InferenceSession("attempt-refiner1.onnx", opts);
+            _runOptions = new RunOptions();
 
         }
 
-        public DetectionResult Detect(Mat image, float lowText = 0.4f, float textThreshold = 0.6f, float linkThreshold = 0.5f)
+        public DetectionResult Detect(Mat image, float lowText = 0.4f, float textThreshold = 0.6f, float linkThreshold = 0.7f)
         {
+            var ss = new Stopwatch();
+
+            
             var xx = image.ToInput();
- 
+
+            
             var result = this.predictEngine.Predict(new CraftInput() { Image = xx.Input });
-             var inputs = new List<NamedOnnxValue>
-             {
-                 NamedOnnxValue.CreateFromTensor("y", new DenseTensor<float>(result.Output, new[] { 1, 192, 256, 2 })),
-                 NamedOnnxValue.CreateFromTensor("feature", new DenseTensor<float>(result.feature, new[] { 1, 32, 192, 256 }))
-             };
+
             using var input_y = OrtValue.CreateTensorValueFromMemory<float>(OrtMemoryInfo.DefaultInstance,
-                result.Output, new long[] { 1, 192, 256, 2 });
+                result.Output, [1, 48, 160, 2]);
             using var input_feature = OrtValue.CreateTensorValueFromMemory<float>(OrtMemoryInfo.DefaultInstance,
-                result.feature, new long[] { 1, 32, 192, 256 });
+                result.feature, [1, 32, 48, 160]);
             var inputs2 = new Dictionary<string, OrtValue>
             {
                 {
-                    "y", input_y
+                    "onnx::Transpose_0", input_y
                 },
                 {
-                    "feature", input_feature
+                    "onnx::Concat_1", input_feature
                 }
             };
 
-            using IDisposableReadOnlyCollection<OrtValue> refinerResults = _session.Run(runOptions, inputs2, _session.OutputNames);
-            var outputSize = new Size(256, 192);
+            ss.Start();
+            using IDisposableReadOnlyCollection<OrtValue> refinerResults = _session.Run(_runOptions, inputs2, _session.OutputNames);
+            ss.Stop();
+            Log.Debug($"Box: {ss.ElapsedMilliseconds} ms");
+            var outputSize = new Size(320, 96);
 
-            var textmap = new Mat(outputSize, DepthType.Cv32F, 1);         
-            var linkmap = new Mat(outputSize, DepthType.Cv32F, 1);
+            using var textmap = new Mat(outputSize, DepthType.Cv32F, 1);         
+            using var linkmap = new Mat(outputSize, DepthType.Cv32F, 1);
             FillMatFromArray3D(textmap, result.Output);
             linkmap.SetTo<float>(refinerResults[0].GetTensorDataAsSpan<float>().ToArray());
-            var img_h = 192;
-            var img_w = 256;
+            var img_h = 96;
+            var img_w = 320;
 
             using Mat textScoreThresholded = new Mat();
             using Mat textScoreThresholded2 = new Mat();
@@ -108,11 +115,13 @@ namespace Nomerator
             var centroids = centroidsMat.ToImageNDarray<float>();
             var boxes = new Dictionary<int, PointF[]>();
             var allPoints = new List<PointF>();
+            
+            
             for (var k = 1; k < nLabels; k++)
             {
                 // size filtering
                 var size = (int)stats[k, (int)ConnectedComponentsTypes.Area];
-                if (size < 500)
+                if (size < 200)
                 {
                     continue;
                 }
@@ -127,7 +136,7 @@ namespace Nomerator
                 }
 
                 // make segmentation map
-                var segmapZero = np.zeros(new shape(192,256 ), dtype: np.UInt8);
+                var segmapZero = np.zeros(new shape(96, 320), dtype: np.UInt8);
                 var segmap1 = segmapZero.WhereFlags<byte>(labelFlags, (flag, elem) => (byte)(flag ? 255 : 0));
                 var segmap = segmap1.WhereFlags<byte>(np.logical_and(scoreLink ==1, scoreText ==0 ), (flag, elem) => (byte)(flag ? 0 : elem));
 
@@ -153,16 +162,13 @@ namespace Nomerator
                 var segmapBounds = segmap.A(new Slice(sy, ey), new Slice(sx, ex));
                 using var segmapMat = segmapBounds.ToMatImage<byte>();
                 CvInvoke.Dilate(segmapMat, dilateMat, kernelMat, new Point(-1, -1), -1, BorderType.Default, new MCvScalar());
+                
+                ndarray dilate = dilateMat.ToImageNDarray<byte>();
+                
+                
 
-                var dilate = dilateMat.ToImageNDarray<byte>();
+                segmap[new Slice(sy, ey), new Slice(sx, ex)] = dilate;
 
-                    for (var i = sy; i < ey; i++)
-                    {
-                        for (var j = sx; j < ex; j++)
-                        {
-                            segmap[i, j] = dilate[i - sy, j - sx];
-                        }
-                    }
 
                 // make box
                 var tempArr = np.roll(np.array(np.where(segmap !=0)),  1 , axis: 0);
@@ -195,7 +201,8 @@ namespace Nomerator
                 box = np.array(box);
                 boxes.Add(k, box.ToPointsFloatArray().AdjustResultCoordinates(1, 1));
             }
- 
+            
+            
             return new DetectionResult
             {
                 Boxes = boxes

@@ -44,7 +44,7 @@ namespace Nomerator
         }
 
 
-        public static ImageResizeOutput ToInput(this Mat mat, int targetWidth = 512, int targetHeight = 384)
+        public static ImageResizeOutput ToInput(this Mat mat, int targetWidth = 320, int targetHeight = 96)
         {
             double aspectRatio = Math.Min((double)targetWidth / mat.Width, (double)targetHeight / mat.Height);
             int newWidth = (int)(mat.Width * aspectRatio);
@@ -79,7 +79,7 @@ namespace Nomerator
             var dimensions = new int[] { 3, targetHeight, targetWidth }; // Change order to [color, height, width]
             var target = new DenseTensor<float>(dimensions);
 
-            var stride = 196608;
+            var stride = targetHeight * targetWidth;
             var buffer = new float[targetWidth * targetHeight * 3];
             var byteArrayBuffer = new byte[targetWidth * targetHeight * 3];
             Marshal.Copy(paddedImageMat.DataPointer, byteArrayBuffer, 0, byteArrayBuffer.Length);

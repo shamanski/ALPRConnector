@@ -3,7 +3,6 @@ using System.Windows.Input;
 using System.Windows.Media;
 using Emgu.CV;
 using System.Windows;
-using System.Threading.Tasks;
 using AppDomain;
 using System.Windows.Interop;
 using System.Windows.Shapes;
@@ -13,7 +12,6 @@ namespace AlprGUI
 {
     public partial class RegionsControl : UserControl
     {
-        private readonly VideoCaptureService videoCaptureManager;
         private readonly CameraRepository cameraManager;
         private Point startPoint;
         private Rectangle selectionRectangle;

@@ -6,7 +6,7 @@ namespace Nomerator
     {
         [LoadColumn(0)]
         [ColumnName("input.1")]
-        [VectorType(1, 512, 384, 3)]
+        [VectorType(1, 320, 96, 3)]
         public float[] Image;
     }
 }

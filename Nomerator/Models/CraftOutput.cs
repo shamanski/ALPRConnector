@@ -4,10 +4,10 @@ namespace Nomerator
 {
     internal class CraftOutput
     {
-        [ColumnName("279")]
+        [ColumnName("285")]
         public float[] Output;
 
-        [ColumnName("onnx::Conv_269")]
+        [ColumnName("onnx::Conv_275")]
         public float[] feature;
     }
 }
