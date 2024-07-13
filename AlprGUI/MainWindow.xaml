@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AlprGUI"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="800">
+        Title="LPR" Height="600" Width="800">
     <DockPanel>
         <!-- Status Bar -->
         <StatusBar DockPanel.Dock="Bottom">

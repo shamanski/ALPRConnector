@@ -1,14 +1,8 @@
-﻿using System;
-using Nomerator;
-using SkiaSharp;
-
-namespace Nomerator
+﻿namespace Nomerator
 {
     public class YoloPrediction
     {
         public YoloLabel? Label { get; set; }
-
-        public SKRect Rectangle { get; set; }
 
         public float Score { get; set; }
 

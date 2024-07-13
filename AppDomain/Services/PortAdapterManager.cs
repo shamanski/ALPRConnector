@@ -1,5 +1,4 @@
-﻿using AppDomain;
-using Serilog;
+﻿using Serilog;
 using System.Collections.Concurrent;
 namespace AppDomain;
 
@@ -9,7 +8,7 @@ public class PortAdapterManager
         new Lazy<PortAdapterManager>(() => new PortAdapterManager());
 
     private readonly ConcurrentDictionary<LprReader, PortAdapter> _adapters;
-    private readonly ConcurrentDictionary<LprReader, CancellationTokenSource> _cancellationTokenSources;
+    private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokenSources;
     private readonly ConcurrentDictionary<string, string> _adapterStatus;
     private readonly ComPortService _comPortService;
 
@@ -20,7 +19,7 @@ public class PortAdapterManager
     private PortAdapterManager()
     {
         _adapters = new ConcurrentDictionary<LprReader, PortAdapter>();
-        _cancellationTokenSources = new ConcurrentDictionary<LprReader, CancellationTokenSource>();
+        _cancellationTokenSources = new ConcurrentDictionary<string, CancellationTokenSource>();
         _adapterStatus = new ConcurrentDictionary<string, string>();
         _comPortService = new ComPortService();
         HealthCheck.RegisterService(_comPortService);
@@ -29,31 +28,34 @@ public class PortAdapterManager
 
     public async Task StartAdapterAsync(LprReader reader)
     {
-        var cancellationTokenSource = new CancellationTokenSource();
+        using var cancellationTokenSource = new CancellationTokenSource();
         var portAdapter = new PortAdapter(_comPortService, reader);
         HealthCheck.RegisterService(portAdapter);
         if (_adapters.TryAdd(reader, portAdapter))
         {
-            _cancellationTokenSources[reader] = cancellationTokenSource;
-            _adapterStatus[reader.Name] = "Starting...";
-            AdapterStatusChanged?.Invoke(this, new AdapterStatusChangedEventArgs(reader, "Starting..."));
-            await portAdapter.Run();
+            _cancellationTokenSources[reader.Name] = cancellationTokenSource;
             _adapterStatus[reader.Name] = "Running";
             AdapterStatusChanged?.Invoke(this, new AdapterStatusChangedEventArgs(reader, "Running"));
+            await portAdapter.Run(cancellationTokenSource.Token);
         }
     }
 
-    public void StopAdapter(LprReader reader)
+    public async Task  StopAdapterAsync(LprReader reader)
     {
         var adapterKeyValuePair = _adapters.FirstOrDefault(kv => kv.Key.Name == reader.Name);
         if (adapterKeyValuePair.Value != null)
         {
             var adapter = adapterKeyValuePair.Value;
-            adapter.Dispose();
+            CancellationTokenSource cancelToken;
+            _cancellationTokenSources.TryRemove(reader.Name, out cancelToken);
+            cancelToken?.Cancel(); 
+            await Task.Delay(1000);
+            cancelToken?.Dispose();
             _adapterStatus[reader.Name] = "Stopped";
             AdapterStatusChanged?.Invoke(this, new AdapterStatusChangedEventArgs(reader, "Stopped"));
-
-            _adapters.TryRemove(adapterKeyValuePair.Key, out _);
+           _adapters.TryRemove(adapterKeyValuePair.Key, out _);
+            adapter.Dispose();
+            GC.Collect();
         }
     }
 

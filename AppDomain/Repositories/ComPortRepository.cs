@@ -1,11 +1,4 @@
-﻿using ConsoleApp1;
-using Emgu.CV.Ocl;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO.Ports;
+﻿using System.IO.Ports;
 
 namespace AppDomain
 {
@@ -35,9 +28,15 @@ namespace AppDomain
                 throw new ArgumentException($"Port pair already exists!");
             }
 
-            await _emulatorService.AddPair(portPair);
-            _settings.ComPortPairs.Add(portPair);
-            ConfigurationLoader.SaveSettings(_settings);
+             if (await _emulatorService.AddPair(portPair))
+            {
+                _settings.ComPortPairs.Add(portPair);
+                ConfigurationLoader.SaveSettings(_settings);
+            }
+            else
+            {
+                throw new Exception("Can't add ports to Windows. Check if application has admin privileges");
+            }
          
         }
 

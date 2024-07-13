@@ -1,8 +1,6 @@
 ﻿using System.Drawing;
-using System.Windows.Media;
-
-using System.Drawing;
 using Pen = System.Drawing.Pen;
+
 namespace AppDomain;
 public class BitmapHelper
 {

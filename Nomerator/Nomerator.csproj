@@ -22,7 +22,6 @@
     <PackageReference Include="Microsoft.ML.OnnxTransformer" Version="3.0.1" />
     <PackageReference Include="NumpyDotNet" Version="0.9.86.2" />
     <PackageReference Include="Serilog" Version="4.0.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
     <PackageReference Include="System.Drawing.Common" Version="8.0.6" />
   </ItemGroup>
 

@@ -16,6 +16,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Serilog.Sinks.RichTextBox.Themes;
+using UserControl = System.Windows.Controls.UserControl;
 
 namespace AlprGUI
 {

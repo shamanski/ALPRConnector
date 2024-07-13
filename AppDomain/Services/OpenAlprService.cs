@@ -1,5 +1,4 @@
-﻿
-using Emgu.CV;
+﻿using Emgu.CV;
 using F23.StringSimilarity;
 using System.Collections.Concurrent;
 using AppDomain.Abstractions;
@@ -8,24 +7,21 @@ using System.Diagnostics;
 using Rectangle = System.Drawing.Rectangle;
 using Nomerator;
 using Emgu.CV.CvEnum;
-using System.Text.RegularExpressions;
 
 
 namespace AppDomain
 {
-    public class OpenAlprService : IAlprClient, IHealthCheckService
+    public class OpenAlprService : IAlprClient, IHealthCheckService, IDisposable
     {
         private readonly DetectionAndReading _predictor;
         private readonly ConcurrentQueue<string> _plates;
         private readonly LongestCommonSubsequence _comparer;
         private readonly string _connection;
-        private readonly object _frameLock = new object();
-        private CancellationTokenSource _cancellationTokenSource;
         private long frames = 0;
         private int threadId = Thread.CurrentThread.ManagedThreadId;
         private Stopwatch stopwatch = new Stopwatch();
-        private List<Rectangle> regions = new List<Rectangle>();
         private List<string> platesList = new List<string>(64);
+        private bool disposed;
 
         public OpenAlprService(string connection)
         {
@@ -33,23 +29,17 @@ namespace AppDomain
             _predictor = new DetectionAndReading();
             _plates = new ConcurrentQueue<string>();
             _comparer = new LongestCommonSubsequence();
-            Rectangle rect = new Rectangle(0, 100, 720, 500);
-            regions.Add(rect);
         }
 
-        public async Task StartProcessingAsync(Func<string, Task> processResult, CancellationToken cancellationToken)
-        {
-            
+        public async Task StartProcessingAsync(Func<string, Task> processResult, RelativeRectangle roi, CancellationToken cancellationToken)
+        {           
             Log.Information($"Starting processing camera {_connection}...");           
-
-            _cancellationTokenSource = new CancellationTokenSource();
-
             try
             {
 
                 var processingTask = Task.Run(async () =>
                 {
-                    await ProcessFramesAsync(cancellationToken);
+                    await ProcessFramesAsync(processResult, roi, cancellationToken);
                 });
 
                 var aggregationTask = Task.Run(async () =>
@@ -61,6 +51,11 @@ namespace AppDomain
 
                 await Task.WhenAny( processingTask, aggregationTask);
                 Log.Information("One of the tasks has completed or canceled");
+                if (cancellationToken.IsCancellationRequested ) 
+                {
+                    return;
+                }
+
                 throw new Exception();
             }
             catch (Exception ex)
@@ -70,7 +65,7 @@ namespace AppDomain
             }
         }
 
-            private async Task ProcessFramesAsync(CancellationToken cancellationToken)
+        private async Task ProcessFramesAsync(Func<string, Task> processResult, RelativeRectangle roi, CancellationToken cancellationToken)
         {
             Log.Information($"Starting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
             DateTime lastFrameTime = DateTime.Now;
@@ -85,12 +80,19 @@ namespace AppDomain
             Log.Information($"Capture started on thread: {Thread.CurrentThread.ManagedThreadId}");
             using var frame = new Mat();
             var sw = new Stopwatch();
-            //await processResult("CAMREADY");
+            await processResult("CAMREADY");
+            var roiRect = new Rectangle()
+            {
+                X = (int)(roi.RelativeRoiLeft * videoCapture.Width),
+                Y = (int)(roi.RelativeRoiTop * videoCapture.Height),
+                Width = (int)(roi.RelativeRoiWidth * videoCapture.Width),
+                Height = (int)(roi.RelativeRoiHeight * videoCapture.Height)
+            };
             while (!cancellationToken.IsCancellationRequested)
             {
                 videoCapture.Set(CapProp.PosFrames, videoCapture.Get(CapProp.FrameCount) - 1);
                 videoCapture.Read(frame);
-                if (frame == null)
+                if (frame == null || frame.IsEmpty)
                 {
                     var elapsedSeconds = (DateTime.Now - lastFrameTime).TotalSeconds;
                     if (elapsedSeconds > 5)
@@ -103,8 +105,8 @@ namespace AppDomain
                 }
                 try
                 {
-                    using var processFrame = frame.Clone();
-                    foreach (var plate in _predictor.Recognize(processFrame))
+                    using Mat roiImage = new Mat(frame, roiRect);
+                    foreach (var plate in _predictor.Recognize(roiImage))
                     {
                         _plates.Enqueue(plate);
                     }
@@ -123,12 +125,6 @@ namespace AppDomain
             }
 
             Log.Information($"Exiting ProcessFramesAsync on thread: {Thread.CurrentThread.ManagedThreadId}");
-        }
-
-
-        public void StopProcessing()
-        {
-            _cancellationTokenSource?.Cancel();
         }
 
         private async Task AggregatePlatesAsync(Func<string, Task> processResult, CancellationToken cancellationToken)
@@ -200,6 +196,30 @@ namespace AppDomain
             frames = 0;
             stopwatch.Restart();
             return $"Thread {threadId} LPR recognition service:  {fps} frames/sec";
-        }     
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!disposed)
+            {
+                if (disposing)
+                {
+                    _predictor.Dispose();
+                }
+
+                disposed = true;
+            }
+        }
+
+        ~OpenAlprService()
+        {
+            Dispose(false);
+        }
     }
 }

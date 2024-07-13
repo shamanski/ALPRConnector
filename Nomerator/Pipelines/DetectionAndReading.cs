@@ -1,16 +1,8 @@
 ﻿using Emgu.CV;
 using Compunet.YoloV8;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using Image = SixLabors.ImageSharp.Image;
 using Rectangle = System.Drawing.Rectangle;
-using Emgu.CV.CvEnum;
 using System.Text;
-using Size = System.Drawing.Size;
-using Microsoft.ML.OnnxRuntime.Tensors;
 using System.Data;
-using static System.Net.Mime.MediaTypeNames;
-using Emgu.CV.Shape;
 
 namespace Nomerator
 {
@@ -23,15 +15,15 @@ namespace Nomerator
 
         public DetectionAndReading()
         {
-            localizationDetector = YoloV8Predictor.Create("model.onnx");
-            keyPointsDetector = new CraftDetector("attempt-craft1.onnx");
-            ocrDetector = new DefaultCrnnTextRecognizer("CRNN_VGG_BiLSTM_CTC.onnx");
+            localizationDetector = YoloV8Predictor.Create("models/yolo.onnx");
+            keyPointsDetector = new CraftDetector("models/craft.onnx");
+            ocrDetector = new DefaultCrnnTextRecognizer("models/efficientnet_ocr.onnx");
         }
 
         public IEnumerable<string> Recognize(Mat frame)
         {
             /*Numberplate detection*/
-            var result = localizationDetector.Detect(frame, 1.0);
+            var result = localizationDetector.Detect(frame);
                
             foreach (var entry in result.Boxes)
             {

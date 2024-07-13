@@ -1,7 +1,5 @@
-﻿
-using Emgu.CV;
+﻿using Emgu.CV;
 using Microsoft.ML.OnnxRuntime.Tensors;
-using SkiaSharp;
 
 namespace Nomerator
 {

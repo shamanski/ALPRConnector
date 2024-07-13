@@ -1,7 +1,5 @@
 ﻿using AppDomain;
-using Emgu.CV;
 using Serilog;
-using System.Diagnostics;
 using System.Threading;
 
 public class PortAdapter : IDisposable, IHealthCheckService
@@ -14,6 +12,7 @@ public class PortAdapter : IDisposable, IHealthCheckService
     private readonly OpenAlprService alprClient;
     private CancellationTokenSource _cancellationTokenSource;
 
+
     public PortAdapter(ComPortService comPortService, LprReader reader)
     {
         _comPortService = comPortService;
@@ -23,12 +22,11 @@ public class PortAdapter : IDisposable, IHealthCheckService
         connection = cameraManager.GetConnectionString(_reader.Camera);
         alprClient = new OpenAlprService(connection);
         HealthCheck.RegisterService(alprClient);
-        _cancellationTokenSource = new CancellationTokenSource();
     }
 
-    public async Task Run()
+    public async Task Run(CancellationToken cancellationToken)
     {
-        while (true)
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
@@ -43,28 +41,25 @@ public class PortAdapter : IDisposable, IHealthCheckService
                     {
                         await _comPortService.SendLpAsync(_reader.ComPortPair.Sender, _reader.RS485Addr, result);
                     },
-                _cancellationTokenSource.Token);
+                _reader.Camera.Roi,
+                cancellationToken);
                 });
                 await Task.WhenAny(portTask, alprTask);
-                throw new Exception("Corrupted");
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    return;
+                }
+                else 
+                {
+                    throw new Exception("Unknown error in LPR");
+                }
             }
             catch (Exception ex)
             {
-                Log.Error($"Connection unsuccessful: {ex.Message}");
-                _cancellationTokenSource.Cancel();
-                _cancellationTokenSource.Dispose();
-                _cancellationTokenSource = new CancellationTokenSource();
-                continue;
+                Log.Error($"Error in LPR: {ex.Message}. Reconnect...");
             }
-            Log.Information($"Reader started. Camera: {_reader.Name} COM: {_reader.ComPortPair.Sender} RS485: {_reader.RS485Addr}");
         }
 
-    }
-
-    public void Stop()
-    {
-        _cancellationTokenSource.Cancel();
-        Log.Information($"Stop listen camera {_reader.Name}");
     }
 
     public async Task<string> CheckHealthAsync()
@@ -75,9 +70,6 @@ public class PortAdapter : IDisposable, IHealthCheckService
 
     public void Dispose()
     {
-        Stop();
-        _cancellationTokenSource.Dispose();
-        _comPortService.RemoveRS485Address(_reader.RS485Addr);
-        SerialPortManager.CloseSerialPort(_reader.ComPortPair.Receiver);
+        alprClient.Dispose();
     }
 }

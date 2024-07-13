@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 namespace AppDomain
 {
     using System;
@@ -12,9 +7,7 @@ namespace AppDomain
     using System.Threading;
     using System.Threading.Tasks;
     using Emgu.CV;
-    using Emgu.CV.CvEnum;
     using Serilog;
-    using static System.Net.Mime.MediaTypeNames;
 
     public class VideoCaptureService
     {
@@ -59,17 +52,16 @@ namespace AppDomain
 
         private async Task CaptureFrames(string cameraName, CancellationToken cancellationToken)
         {
-            var videoCapture = _captures[cameraName];
+            using var videoCapture = _captures[cameraName];
             DateTime lastFrameTime = DateTime.Now;
             while (!cancellationToken.IsCancellationRequested)
             {
-                var frame = new Mat();
+                using var frame = new Mat();
                 var isSuccess = videoCapture.Read(frame);
 
                 if (frame.IsEmpty || !isSuccess)
                 {
-                    frame.Dispose();
-                    await Task.Delay(10, cancellationToken);
+                    await Task.Delay(20, cancellationToken);
                     var elapsedSeconds = (DateTime.Now - lastFrameTime).TotalSeconds;
                     if (elapsedSeconds > 10)
                     {
@@ -91,8 +83,7 @@ namespace AppDomain
                     handler?.Invoke(frame.Clone());
                 }
 
-                frame.Dispose();
-                await Task.Delay(10, cancellationToken);
+                await Task.Delay(20, cancellationToken);
             }
         }
 
@@ -114,11 +105,14 @@ namespace AppDomain
             }
         }
 
-        public Mat ResizeFrame(Mat frame, Size newSize)
+        public Mat ResizeFrame(Mat frame, Size maxSize, out double ratio)
         {
-            var resizedFrame = new Mat();
-            CvInvoke.Resize(frame, resizedFrame, newSize);
-            return resizedFrame;
+            ratio = Math.Min((double)maxSize.Width / frame.Width, (double)maxSize.Height / frame.Height);
+            int newWidth = (int)(frame.Width * ratio);
+            int newHeight = (int)(frame.Height * ratio);
+            using var resizedFrame = new Mat();
+            CvInvoke.Resize(frame, resizedFrame, new Size {Width = newWidth, Height = newHeight });
+            return resizedFrame.Clone();
         }
     }
 }

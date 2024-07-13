@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace AppDomain
 {
@@ -26,5 +21,20 @@ namespace AppDomain
         public string Password { get; set; }
         public string Stream { get; set; } = "0";
         public string Manufacturer { get; set; }
+        
+        public RelativeRectangle Roi { get; set; } = new RelativeRectangle();
     }
+
+    public struct RelativeRectangle 
+    {
+        public RelativeRectangle()
+        {
+        }
+
+        public double RelativeRoiLeft { get; set; } = 0;
+        public double RelativeRoiTop { get; set; } = 0;
+        public double RelativeRoiWidth { get; set; } = 1;
+        public double RelativeRoiHeight { get; set; } = 1;
+    }
+
 }

@@ -1,5 +1,4 @@
-﻿using AppDomain;
-using Hsu.NullModemEmulator;
+﻿using Hsu.NullModemEmulator;
 using Serilog;
 
 namespace AppDomain
@@ -12,7 +11,7 @@ namespace AppDomain
             _manager = new NullModemEmulatorManager();
         }
 
-        public async Task AddPair(ComPortPair pair)
+        public async Task<bool> AddPair(ComPortPair pair)
         {
             try
             {
@@ -29,8 +28,9 @@ namespace AppDomain
             catch (Exception ex)
             {
                 Log.Error($"Error adding COM port pair: {ex.Message}");
+                return false;
             }
-            
+            return true;
         }
 
         public List<ComPortPair> GetPairs() 

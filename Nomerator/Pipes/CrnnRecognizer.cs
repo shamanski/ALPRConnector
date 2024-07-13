@@ -1,14 +1,8 @@
-﻿using System;
-using System.Drawing;
-using System.IO;
+﻿using System.Drawing;
 using Emgu.CV;
-using Emgu.CV.CvEnum;
 using Emgu.CV.Dnn;
 using Emgu.CV.OCR;
 using Emgu.CV.Structure;
-using Microsoft.ML;
-using SixLabors.ImageSharp.Metadata;
-
 
 namespace Nomerator
 {
@@ -22,14 +16,14 @@ namespace Nomerator
 
         public CrnnTextRecognizer(string modelFile = "ocr.onnx", string vocabularyFile = "alphabet_36.txt")
         {
-            this.inputSize = new Size(400, 100);
-            this.model = new TextRecognitionModel(modelFile);
+            inputSize = new Size(400, 100);
+            model = new TextRecognitionModel(modelFile);
 
-            this.model.Vocabulary = File.ReadAllText(vocabularyFile).Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            this.model.DecodeType = "CTC-greedy";
-            this.model.SetInputScale(1.0 / 255.0);
-            this.model.SetInputMean(new MCvScalar(0.0, 0.0, 0.0));
-            this.model.SetInputSize(this.inputSize);
+            model.Vocabulary = File.ReadAllText(vocabularyFile).Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            model.DecodeType = "CTC-greedy";
+            model.SetInputScale(1.0 / 255.0);
+            model.SetInputMean(new MCvScalar(0.0, 0.0, 0.0));
+            model.SetInputSize(this.inputSize);
         }
 
         ~CrnnTextRecognizer()

@@ -1,7 +1,4 @@
-﻿using SkiaSharp;
-using System.Drawing;
-
-namespace Nomerator
+﻿namespace Nomerator
 {
     public class YoloLabel
     {
@@ -10,10 +7,6 @@ namespace Nomerator
         public string? Name { get; set; }
 
         public YoloLabelKind Kind { get; set; }
-
-        public SKColor Color { get; set; }
-
-        public YoloLabel() => Color = Color.Red;
     }
 
     public enum YoloLabelKind

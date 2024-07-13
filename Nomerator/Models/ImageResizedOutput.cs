@@ -1,6 +1,4 @@
-﻿
-using System;
-using Emgu.CV;
+﻿using Emgu.CV;
 using NumpyDotNet;
 
 namespace Nomerator

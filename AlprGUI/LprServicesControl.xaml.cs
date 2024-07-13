@@ -2,6 +2,7 @@
 using System.Collections.ObjectModel;
 using System.Windows.Controls;
 using System.Windows;
+using UserControl = System.Windows.Controls.UserControl;
 
 namespace AlprGUI;
 
@@ -45,9 +46,7 @@ public partial class LprServicesControl : UserControl
     private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
         if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
-        {
-           // selectedReader.Status = "Starting...";
-
+        {          
             try
             {
                 await _portAdapterManager.StartAdapterAsync(selectedReader.LprReader);
@@ -60,12 +59,11 @@ public partial class LprServicesControl : UserControl
         }
     }
 
-    private void StopButton_Click(object sender, RoutedEventArgs e)
+    private async void StopButton_Click(object sender, RoutedEventArgs e)
     {
         if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
         {
-            _portAdapterManager.StopAdapter(selectedReader.LprReader);
-           // selectedReader.Status = "Stopped";
+            await _portAdapterManager.StopAdapterAsync(selectedReader.LprReader);
         }
     }
 }

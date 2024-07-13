@@ -1,14 +1,9 @@
-﻿using SkiaSharp;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Emgu.CV;
 
 namespace Nomerator.Abstractions
 {
     internal interface IDetector: IDisposable
     {
-        public List<YoloPrediction> Detect(SKBitmap image, float conf_thres = 0, float iou_thres = 0);
+        public List<YoloPrediction> Detect(Mat image, float conf_thres = 0, float iou_thres = 0);
     }
 }

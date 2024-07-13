@@ -1,17 +1,9 @@
 ﻿using System.Drawing;
-using System.Linq;
 using System.Runtime.InteropServices;
 using Emgu.CV;
 using Emgu.CV.CvEnum;
-using Emgu.CV.Rapid;
 using Emgu.CV.Structure;
 using Microsoft.ML.OnnxRuntime.Tensors;
-
-//using Numpy;using Numpy;
-
-//using Numpy;
-
-//using Numpy.Models;
 using NumpyDotNet;
 
 namespace Nomerator

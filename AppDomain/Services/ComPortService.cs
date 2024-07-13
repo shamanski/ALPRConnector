@@ -1,9 +1,6 @@
 ﻿using AppDomain;
-using AppDomain.Enums;
 using Serilog;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO.Ports;
 
@@ -16,6 +13,8 @@ public class ComPortService : IDisposable, IHealthCheckService
     private long requests = 0;
     private int threadId = Thread.CurrentThread.ManagedThreadId;
     private byte[] answ;
+    private byte[] readBuffer;
+    Stopwatch stopwatch = new Stopwatch();
 
     public ComPortService()
     {
@@ -25,7 +24,8 @@ public class ComPortService : IDisposable, IHealthCheckService
         _lpDictionary = new ConcurrentDictionary<(string portName, int rs485Address), string>();
         Log.Information("COM port service started");
         answ = new byte[10];
-        Stopwatch stopwatch;
+        readBuffer = new byte[3];
+
     }
 
     public async Task Run(string portName)
@@ -54,34 +54,50 @@ public class ComPortService : IDisposable, IHealthCheckService
             Log.Information($"{portName} opened");
         }
 
-        await Task.Run( () => ListenPort(portName));
+        var tcs = new TaskCompletionSource<bool>();
+        var listenerThread =   new Thread(async () => await ListenPort(portName, tcs));
+        listenerThread.Start();
+        await tcs.Task;
     }
 
-    private void ListenPort(string portName)
+    private async Task ListenPort(string portName, TaskCompletionSource<bool> tcs)
     {
-        Log.Information($"Starting COM port listening on thread: {Thread.CurrentThread.ManagedThreadId}");
-        var serialPort = _ports[portName];
-        byte caH = 0, caL = 0, caC = 0;
-        while (true)
+        try
         {
-            Thread.Sleep(12);
-            if (serialPort.BytesToRead > 2)
+            Log.Information($"Starting COM port listening on thread: {Thread.CurrentThread.ManagedThreadId}");
+            var serialPort = _ports[portName];
+            byte caL;
+            byte caC;
+            byte caH;
+            while (true)
             {
-                try
+                Thread.Sleep(16);
+                stopwatch.Start();
+                if (serialPort.BytesToRead > 2)
                 {
-                    caH = (byte)serialPort.ReadByte();
-                    caL = (byte)serialPort.ReadByte();
-                    caC = (byte)serialPort.ReadByte();                   
-                }
-                catch { continue; }
+                    try
+                    {
+                        int i = await serialPort.BaseStream.ReadAsync(readBuffer, 0, 3);
+                        if (i < 3) { continue; }
+                        caH = readBuffer[0];
+                        caL = readBuffer[1];
+                        caC = readBuffer[2];
+                    }
+                    catch { continue; }
 
-                byte computedChecksum = (byte)(((caH ^ caL) ^ 0xFF) % 0x40);
+                    byte computedChecksum = (byte)(((caH ^ caL) ^ 0xFF) % 0x40);
 
-                if (caC == computedChecksum)
-                {
-                    ProcessReceivedData(caH, caL, serialPort.PortName);
+                    if (caC == computedChecksum)
+                    {
+                        ProcessReceivedData(caH, caL, serialPort.PortName);
+                    }
                 }
-            }           
+            }
+        }
+
+        finally
+        {
+            tcs.TrySetResult(true);
         }
     }
 
@@ -177,14 +193,14 @@ public class ComPortService : IDisposable, IHealthCheckService
     {
         int rs485Address = -1;
 
-            if ((caH & 0x80) == 0x80)
-            {
-                rs485Address = ((caH & 0x3F) << 6) | (caL & 0x3F);
-            }
-            else
-            {
-                rs485Address = caH & 0x7F;
-            }
+        if ((caH & 0x80) == 0x80)
+        {
+            rs485Address = ((caH & 0x3F) << 6) | (caL & 0x3F);
+        }
+        else
+        {
+            rs485Address = caH & 0x7F;
+        }
 
         return rs485Address;
     }
@@ -194,7 +210,7 @@ public class ComPortService : IDisposable, IHealthCheckService
         await Task.Delay(10);
         int fps = 0;
         stopwatch.Stop();
-        fps = requests == 0 ? 0 : (int)(requests / stopwatch.Elapsed.TotalSeconds );        
+        fps = requests == 0 ? 0 : (int)(requests / stopwatch.Elapsed.TotalSeconds);
         requests = 0;
         stopwatch.Restart();
         return $"Thread {threadId} COM Port service: listen {_ports.FirstOrDefault().Key}, get {fps} requests/sec";

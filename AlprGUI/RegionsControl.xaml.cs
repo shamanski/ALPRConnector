@@ -7,15 +7,23 @@ using AppDomain;
 using System.Windows.Interop;
 using System.Windows.Shapes;
 using System.Windows.Media.Imaging;
+using Camera = AppDomain.Camera;
+using UserControl = System.Windows.Controls.UserControl;
+using MessageBox = System.Windows.MessageBox;
+using Rectangle = System.Windows.Shapes.Rectangle;
+using Point = System.Windows.Point;
 
 namespace AlprGUI
 {
     public partial class RegionsControl : UserControl
     {
         private readonly CameraRepository cameraManager;
-        private Point startPoint;
         private Rectangle selectionRectangle;
         private bool isSelectingArea = false;
+        private double _ratio;
+        private Point? firstCorner;
+        private Point? secondCorner;
+        private Camera currentCamera;
 
         public RegionsControl()
         {
@@ -23,36 +31,57 @@ namespace AlprGUI
  
             cameraManager = new CameraRepository();
             cameraComboBox.ItemsSource = cameraManager.GetAll();
+            selectionRectangle = new Rectangle() 
+            {   Width = canvas.ActualWidth, 
+                Height = canvas.ActualHeight,
+                Stroke = System.Windows.Media.Brushes.Red,
+                StrokeThickness = 2,
+            };
+            Canvas.SetLeft(selectionRectangle, 0);
+            Canvas.SetTop(selectionRectangle, 0);
+            Canvas.SetZIndex(selectionRectangle, 1000);
+            canvas.Children.Add( selectionRectangle );
         }
 
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
             if (cameraComboBox.SelectedItem is Camera selectedCamera)
             {
-                var connection = cameraManager.GetConnectionString(selectedCamera);
-                await StartCamera(connection);
+                await StartCamera(selectedCamera);
             }
         }
 
-        private async Task StartCamera(string connection)
+        private async Task StartCamera(Camera camera)
         {
             try
             {
                 var videoCaptureManager = VideoCaptureService.Instance;
+                var connection = cameraManager.GetConnectionString(camera);
+                currentCamera = camera;
                 await videoCaptureManager.StartProcessingAsync(connection, async frame =>
                 {
-                    // Resize the frame to a smaller size
-                   // var resizedFrame = videoCaptureManager.ResizeFrame(frame, new System.Drawing.Size(704, 576));
+                    int canvasWidth = (int)canvas.ActualWidth;
+                    int canvasHeight = (int)canvas.ActualHeight;
+                   
+                    using var resizedFrame = videoCaptureManager.ResizeFrame(frame, new System.Drawing.Size(canvasWidth, canvasHeight), out _ratio );
 
                     await Dispatcher.InvokeAsync(() =>
                     {
-                        imageControl.Source = ToBitmapSource(frame);
+                        if (!isSelectingArea)
+                        {
+                            Canvas.SetLeft(selectionRectangle, camera.Roi.RelativeRoiLeft * resizedFrame.Width);
+                            Canvas.SetTop(selectionRectangle, camera.Roi.RelativeRoiTop * resizedFrame.Height);
+                            selectionRectangle.Width = camera.Roi.RelativeRoiWidth * resizedFrame.Width;
+                            selectionRectangle.Height = camera.Roi.RelativeRoiHeight * resizedFrame.Height;
+                        }
+                        
+                        imageControl.Source = ToBitmapSource(resizedFrame);
                     });
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                System.Windows.MessageBox.Show(ex.Message);
             }
         }
 
@@ -61,72 +90,66 @@ namespace AlprGUI
             isSelectingArea = true;
         }
 
-        private void SaveButton_Click(object sender, RoutedEventArgs e)
+        private async void ResetButton_Click(object sender, RoutedEventArgs e)
         {
-            if (selectionRectangle != null)
+            currentCamera.Roi = new RelativeRectangle() 
             {
-                double left = Canvas.GetLeft(selectionRectangle);
-                double top = Canvas.GetTop(selectionRectangle);
-                double width = selectionRectangle.Width;
-                double height = selectionRectangle.Height;
-
-                // Сохранение выделенной области
-                // Здесь вы можете реализовать свою логику для сохранения координат или изображения выделенной области
-
-                MessageBox.Show($"Область сохранена: Left={left}, Top={top}, Width={width}, Height={height}");
-            }
+                RelativeRoiTop = 0,
+                RelativeRoiLeft = 0,
+                RelativeRoiHeight = 1,
+                RelativeRoiWidth = 1
+            };
+            cameraManager.EditCamera(currentCamera);
+            MessageBox.Show("ROI saved.");
         }
 
         private void ImageControl_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (isSelectingArea)
             {
-                Point position = e.GetPosition(canvas); // Получаем координаты относительно imageControl
-                if (position.X >= 0 && position.X <= canvas.ActualWidth &&
+                Point position = e.GetPosition(canvas);
+                if (firstCorner == null && position.X >= 0 && position.X <= canvas.ActualWidth &&
                     position.Y >= 0 && position.Y <= canvas.ActualHeight)
                 {
-                    startPoint = position;
-                    selectionRectangle = new Rectangle
+                    firstCorner = position;
+                    Canvas.SetLeft(selectionRectangle, position.X);
+                    Canvas.SetTop(selectionRectangle, position.Y);
+                    selectionRectangle.Width = 0;
+                    selectionRectangle.Height = 0;
+                }
+                else if (position.X >= 0 && position.X <= canvas.ActualWidth &&
+                        position.Y >= 0 && position.Y <= canvas.ActualHeight )
+                {
+                    secondCorner = position;
+                    selectionRectangle.Width = Math.Abs(firstCorner.Value.X - position.X);
+                    selectionRectangle.Height = Math.Abs(firstCorner.Value.Y - position.Y);
+                    
+                    isSelectingArea = false;
+                    currentCamera.Roi = new RelativeRectangle()
                     {
-                        Stroke = Brushes.Red,
-                        StrokeThickness = 2
-                    };
-                    Canvas.SetLeft(selectionRectangle, startPoint.X);
-                    Canvas.SetTop(selectionRectangle, startPoint.Y);
-                    Canvas.SetZIndex(selectionRectangle, 1000);
-                    canvas.Children.Add(selectionRectangle);
+                        RelativeRoiTop = firstCorner.Value.Y / imageControl.ActualHeight,
+                        RelativeRoiLeft = firstCorner.Value.X / imageControl.ActualWidth,
+                        RelativeRoiHeight = selectionRectangle.Height / imageControl.ActualHeight,
+                        RelativeRoiWidth = selectionRectangle.Width / imageControl.ActualWidth
+                    }; 
+                    cameraManager.EditCamera(currentCamera);
+                    secondCorner = null;
+                    firstCorner = null;
+                    MessageBox.Show("ROI saved.");
                 }
             }
         }
 
-        private void ImageControl_MouseMove(object sender, MouseEventArgs e)
+        private void ImageControl_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            if (isSelectingArea && selectionRectangle != null)
+            if (isSelectingArea && selectionRectangle != null && firstCorner != null)
             {
                 Point position = e.GetPosition(canvas); // Получаем координаты относительно imageControl
-                double left = Math.Min(startPoint.X, position.X);
-                double top = Math.Min(startPoint.Y, position.Y);
-                double width = Math.Abs(startPoint.X - position.X);
-                double height = Math.Abs(startPoint.Y - position.Y);
+                double width = Math.Abs(firstCorner.Value.X - position.X);
+                double height = Math.Abs(firstCorner.Value.Y - position.Y);
 
-                selectionRectangle.Margin = new Thickness(left, top, 0, 0);
                 selectionRectangle.Width = width;
                 selectionRectangle.Height = height;
-            }
-        }
-
-        private void ImageControl_MouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (isSelectingArea)
-            {
-                isSelectingArea = false;
-
-                // Convert coordinates from canvas to imageControl
-                Point startPointImage = canvas.TranslatePoint(startPoint, canvas);
-                Point endPointImage = canvas.TranslatePoint(e.GetPosition(canvas), canvas);
-
-                // Use startPointImage and endPointImage as coordinates relative to imageControl
-                // for further processing
             }
         }
 
@@ -140,7 +163,8 @@ namespace AlprGUI
                     IntPtr.Zero,
                     Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
-                bitmapSource.Freeze(); 
+                bitmapSource.Freeze();
+                mat.Dispose();
                 return bitmapSource;
             }
         }

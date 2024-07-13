@@ -12,6 +12,10 @@ using Serilog;
 using Serilog.Sinks.RichTextBox;
 using System.Reflection.Emit;
 using Serilog.Sinks.RichTextBox.Themes;
+using System;
+using System.Windows.Forms; 
+using System.Drawing;
+using MessageBox = System.Windows.MessageBox;
 
 namespace AlprGUI
 {
@@ -22,6 +26,7 @@ namespace AlprGUI
     {
         private string _statusMessage;
         private readonly LogBox _logControl;
+        private NotifyIcon _notifyIcon;
 
         public string StatusMessage
         {
@@ -37,13 +42,62 @@ namespace AlprGUI
         {
             InitializeComponent();
             DataContext = this;
+            InitializeTrayIcon();
             StatusMessage = "Application Started";
             Log.Information("Application started");
+        }
+
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            e.Cancel = true; 
+            this.Hide(); 
+            base.OnClosing(e);
         }
 
         public MainWindow(LogBox logControl): this()
         {
             _logControl = logControl;
+        }
+
+        private void InitializeTrayIcon()
+        {
+            _notifyIcon = new NotifyIcon
+            {
+                Icon = new Icon("icon.ico"),
+                Visible = true,
+                Text = "LPR"
+            };
+
+            _notifyIcon.DoubleClick += (s, args) => ShowMainWindow();
+
+            var contextMenu = new ContextMenuStrip();
+            contextMenu.Items.Add("Restore", null, (s, e) => ShowMainWindow());
+            contextMenu.Items.Add("Exit", null, (s, e) => ExitApplication());
+            _notifyIcon.ContextMenuStrip = contextMenu;
+        }
+     
+        private void ShowMainWindow()
+        {
+            this.Show();
+            this.WindowState = WindowState.Normal;
+            this.Activate();
+        }
+
+        private void ExitApplication()
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            System.Windows.Application.Current.Shutdown();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            System.Windows.Application.Current.Shutdown();
+            base.OnClosed(e);
+            Environment.Exit(0);
+ 
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -55,7 +109,7 @@ namespace AlprGUI
 
         private void ListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (sender is ListBox listBox && listBox.SelectedItem is ListBoxItem selectedItem)
+            if (sender is System.Windows.Controls.ListBox listBox && listBox.SelectedItem is ListBoxItem selectedItem)
             {
                 var textBlock = selectedItem.Content as TextBlock;
                 if (textBlock != null)

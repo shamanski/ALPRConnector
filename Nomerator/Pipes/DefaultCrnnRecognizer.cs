@@ -11,10 +11,10 @@ namespace Nomerator
         private readonly TextRecognitionModel model;
         private readonly Size inputSize;
 
-        public DefaultCrnnTextRecognizer(string modelFile = "c:/1/attempt4.onnx", string vocabularyFile = "alphabet_36.txt") //CRNN_VGG_BiLSTM_CTC.
+        public DefaultCrnnTextRecognizer(string modelFile = "models/efficientnet_ocr.onnx", string vocabularyFile = "models/alphabet_36.txt") 
         {
             inputSize = new Size(200, 50);
-            model = new TextRecognitionModel("c:/1/attempt4.onnx");
+            model = new TextRecognitionModel(modelFile);
 
             model.Vocabulary = File.ReadAllText(vocabularyFile).Split(new string[] { "\n" }, StringSplitOptions.RemoveEmptyEntries);
             model.DecodeType = "CTC-greedy";
@@ -59,7 +59,7 @@ namespace Nomerator
             using var cropped = new Mat();
 
             CvInvoke.WarpPerspective(image, cropped, rotationMatrix, this.inputSize);
-            var result = model.Recognize(cropped).ToUpper();
+            var result = model.Recognize(cropped)?.ToUpper();
             return result?.Replace("\r", string.Empty);
         }
        

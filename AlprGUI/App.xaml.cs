@@ -1,10 +1,15 @@
-﻿using System.Reflection.Emit;
+﻿using System.Diagnostics;
+using System.IO;
+using System.Reflection.Emit;
 using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 using System.Windows;
 using AppDomain;
+using Microsoft.Win32.TaskScheduler;
 using Serilog;
 using Serilog.Sinks.RichTextBox.Themes;
+using Application = System.Windows.Application;
+using Task = System.Threading.Tasks.Task;
 namespace AlprGUI;
 
 public partial class App : Application
@@ -17,6 +22,7 @@ public partial class App : Application
 
     private async void Application_Startup(object sender, StartupEventArgs e)
     {
+        AddToStartup();
         logControl = new LogBox();
         var loggerConfig = new LoggerConfiguration()
                .MinimumLevel.Debug()
@@ -34,6 +40,23 @@ public partial class App : Application
         await Task.WhenAll(tasks);
         Log.Information("All services started.");
 
+    }
+
+    private static void AddToStartup()
+    {
+        using (TaskService ts = new TaskService())
+        {
+            TaskDefinition td = ts.NewTask();
+            td.RegistrationInfo.Description = "Your Application Description";
+            td.Principal.RunLevel = TaskRunLevel.Highest; // Запуск от имени администратора
+
+            td.Triggers.Add(new LogonTrigger { Delay = TimeSpan.FromSeconds(10) });
+
+            string exePath = Process.GetCurrentProcess().MainModule.FileName;
+            td.Actions.Add(new ExecAction(exePath, null, Path.GetDirectoryName(exePath)));
+
+            ts.RootFolder.RegisterTaskDefinition("YourAppName", td);
+        }
     }
 
     private List<LprReaderViewModel> LoadLprReaders()
