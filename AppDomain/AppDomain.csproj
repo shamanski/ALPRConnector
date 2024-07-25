@@ -13,6 +13,7 @@
     <PackageReference Include="Emgu.CV.runtime.windows" Version="4.9.0.5494" />
     <PackageReference Include="F23.StringSimilarity" Version="6.0.0" />
     <PackageReference Include="Hsu.NullModemEmulator" Version="2022.206.16" />
+    <PackageReference Include="SerialPortStream" Version="2.4.2" />
     <PackageReference Include="Serilog" Version="4.0.0" />
     <PackageReference Include="Serilog.Sinks.RichTextBox.Wpf" Version="1.1.0" />
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />

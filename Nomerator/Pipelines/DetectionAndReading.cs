@@ -3,6 +3,8 @@ using Compunet.YoloV8;
 using Rectangle = System.Drawing.Rectangle;
 using System.Text;
 using System.Data;
+using System.Diagnostics;
+using Serilog;
 
 namespace Nomerator
 {
@@ -12,10 +14,11 @@ namespace Nomerator
         private CraftDetector keyPointsDetector;
         private DefaultCrnnTextRecognizer ocrDetector;
         private bool disposed = false;
+        private Stopwatch stopwatch = new Stopwatch();
 
         public DetectionAndReading()
         {
-            localizationDetector = YoloV8Predictor.Create("models/yolo.onnx");
+            localizationDetector = YoloV8Predictor.Create("models/yolo8n.onnx");
             keyPointsDetector = new CraftDetector("models/craft.onnx");
             ocrDetector = new DefaultCrnnTextRecognizer("models/efficientnet_ocr.onnx");
         }
@@ -23,17 +26,19 @@ namespace Nomerator
         public IEnumerable<string> Recognize(Mat frame)
         {
             /*Numberplate detection*/
+            stopwatch.Start();
             var result = localizationDetector.Detect(frame);
-               
+              
             foreach (var entry in result.Boxes)
             {
+                
                 var r = entry.Bounds;
                 Rectangle rect = new Rectangle(r.Left, r.Top, r.Width, r.Height);
                 using Mat roiImage = new Mat(frame, rect);
 
                 /*Numberplate box detection*/
                 using var keypoints = keyPointsDetector.Detect(roiImage);
-
+                stopwatch.Stop();
                 var plate = new StringBuilder();
                 foreach (var idx in keypoints.Boxes.Keys)
                 {
@@ -55,6 +60,9 @@ namespace Nomerator
                     yield return plate.ToString();
                 }
             }
+            Log.Debug($"{stopwatch.ElapsedMilliseconds} ms");
+
+            stopwatch.Reset();
         }
 
         public void Dispose()

@@ -2,7 +2,7 @@
 
 namespace AppDomain
 {
-    public class ComPortPair
+    public class ComPortPair : Model
     {
         public string Name { get; set; }
 

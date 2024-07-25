@@ -13,8 +13,24 @@ public class LprReaderViewModel : INotifyPropertyChanged
         get => _status;
         set
         {
-            _status = value;
-            OnPropertyChanged();
+            if (_status != value)
+            {
+                _status = value;
+                OnPropertyChanged();
+            }
+        }
+    }
+
+    public bool AutoStart
+    {
+        get => LprReader.AutoStart;
+        set
+        {
+            if (LprReader.AutoStart != value)
+            {
+                LprReader.AutoStart = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -41,8 +57,11 @@ public class LprReadersViewModel : INotifyPropertyChanged
         get => _lprReaders;
         set
         {
-            _lprReaders = value;
-            OnPropertyChanged();
+            if (_lprReaders != value)
+            {
+                _lprReaders = value;
+                OnPropertyChanged();
+            }
         }
     }
 
@@ -58,8 +77,7 @@ public class LprReadersViewModel : INotifyPropertyChanged
 
         try
         {
-            await Task.Delay(1000); 
-
+            await Task.Delay(1000);
 
             await Task.Run(() =>
             {

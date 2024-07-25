@@ -94,6 +94,7 @@ namespace Nomerator
 
         public DetectionResult Detect(Mat image, float lowText = 0.4f, float textThreshold = 0.6f, float linkThreshold = 0.6f)
         {
+
             var img_h = _modelImageHeight / 2;
             var img_w = _modelImageWidth / 2;
             var xx = image.ToInput();         
@@ -260,11 +261,6 @@ namespace Nomerator
                 {
                     int pixelIndex = (y * width + x) * 3; // Index in byteArrayBuffer (BGR)
                     int tensorIndex = strideBatchR + strideY * (y + yPadding) + strideX * (x + xPadding);
-
-                    // Convert BGR to RGB and normalize
-                    //_bufferInput[tensorIndex] = _byteArrayBuffer[pixelIndex + 2] / 255f; // R
-                    //_bufferInput[tensorIndex + strideBatchG - strideBatchR] = _byteArrayBuffer[pixelIndex + 1] / 255f; // G
-                    //_bufferInput[tensorIndex + strideBatchB - strideBatchR] = _byteArrayBuffer[pixelIndex] / 255f; // B
 
 
                     float r = _byteArrayBuffer[pixelIndex] / 255f; // R

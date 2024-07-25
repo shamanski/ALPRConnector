@@ -1,5 +1,7 @@
 ﻿using Serilog;
 using System.Collections.Concurrent;
+using System.Threading;
+using System.Windows.Media.Animation;
 namespace AppDomain;
 
 public class PortAdapterManager
@@ -11,6 +13,7 @@ public class PortAdapterManager
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _cancellationTokenSources;
     private readonly ConcurrentDictionary<string, string> _adapterStatus;
     private readonly ComPortService _comPortService;
+    private object _locker = new object();
 
     public static PortAdapterManager Instance => _instance.Value;
 
@@ -22,22 +25,26 @@ public class PortAdapterManager
         _cancellationTokenSources = new ConcurrentDictionary<string, CancellationTokenSource>();
         _adapterStatus = new ConcurrentDictionary<string, string>();
         _comPortService = new ComPortService();
-        HealthCheck.RegisterService(_comPortService);
+        //HealthCheck.RegisterService(_comPortService);
         Log.Information("LPR to COM adapter started");
     }
 
     public async Task StartAdapterAsync(LprReader reader)
     {
         using var cancellationTokenSource = new CancellationTokenSource();
-        var portAdapter = new PortAdapter(_comPortService, reader);
-        HealthCheck.RegisterService(portAdapter);
-        if (_adapters.TryAdd(reader, portAdapter))
+        PortAdapter portAdapter;
+        lock (_locker)
         {
-            _cancellationTokenSources[reader.Name] = cancellationTokenSource;
-            _adapterStatus[reader.Name] = "Running";
-            AdapterStatusChanged?.Invoke(this, new AdapterStatusChangedEventArgs(reader, "Running"));
-            await portAdapter.Run(cancellationTokenSource.Token);
+            portAdapter = new PortAdapter(_comPortService, reader);
+            //HealthCheck.RegisterService(portAdapter);
+            if (_adapters.TryAdd(reader, portAdapter))
+            {
+                _cancellationTokenSources[reader.Name] = cancellationTokenSource;
+                _adapterStatus[reader.Name] = "Running";
+                AdapterStatusChanged?.Invoke(this, new AdapterStatusChangedEventArgs(reader, "Running"));               
+            }            
         }
+        await portAdapter.Run(cancellationTokenSource.Token);
     }
 
     public async Task  StopAdapterAsync(LprReader reader)

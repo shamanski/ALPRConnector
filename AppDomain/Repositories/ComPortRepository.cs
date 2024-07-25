@@ -2,7 +2,7 @@
 
 namespace AppDomain
 {
-    public class ComPortRepository
+    public class ComPortRepository : GenericRepository<ComPortPair>
     {
         private readonly AppSettings _settings;
         private ModemEmulatorService _emulatorService;

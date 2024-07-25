@@ -32,7 +32,7 @@ public class PortAdapter : IDisposable, IHealthCheckService
             {
                 var portTask = Task.Run(async () =>
                 {
-                    await _comPortService.Run(_reader.ComPortPair.Sender);
+                    await _comPortService.Run( _reader.ComPortPair.Sender, _reader.RS485Addr);
                 });
 
                 var alprTask = Task.Run(async () =>

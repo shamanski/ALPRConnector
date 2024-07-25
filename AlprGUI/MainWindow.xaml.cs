@@ -57,6 +57,7 @@ namespace AlprGUI
         public MainWindow(LogBox logControl): this()
         {
             _logControl = logControl;
+            ShowLogContent();
         }
 
         private void InitializeTrayIcon()

@@ -80,7 +80,7 @@ namespace AppDomain
             Log.Information($"Capture started on thread: {Thread.CurrentThread.ManagedThreadId}");
             using var frame = new Mat();
             var sw = new Stopwatch();
-            await processResult("CAMREADY");
+            //await processResult("CAMREADY");
             var roiRect = new Rectangle()
             {
                 X = (int)(roi.RelativeRoiLeft * videoCapture.Width),
@@ -184,7 +184,7 @@ namespace AppDomain
             }
 
             var mostCommonPlate = plateGroups.OrderByDescending(p => p.Value).First().Key;
-            Log.Information($"Detected: {mostCommonPlate}");
+            Log.Information($"Detected: {mostCommonPlate} from {plates.Count} candidates");
             return mostCommonPlate;
         }
 

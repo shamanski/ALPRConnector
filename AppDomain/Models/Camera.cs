@@ -2,7 +2,7 @@
 
 namespace AppDomain
 {
-    public class Camera
+    public class Camera: Model
     {
         [Required(ErrorMessage = "Name is required")]
         [StringLength(50, MinimumLength = 3, ErrorMessage = "Name length must be between 3 and 50 characters")]

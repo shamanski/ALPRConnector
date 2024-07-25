@@ -46,7 +46,7 @@ public partial class LprServicesControl : UserControl
     private async void StartButton_Click(object sender, RoutedEventArgs e)
     {
         if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
-        {          
+        {
             try
             {
                 await _portAdapterManager.StartAdapterAsync(selectedReader.LprReader);
@@ -64,6 +64,14 @@ public partial class LprServicesControl : UserControl
         if (dataGrid.SelectedItem is LprReaderViewModel selectedReader)
         {
             await _portAdapterManager.StopAdapterAsync(selectedReader.LprReader);
+            selectedReader.Status = "Stopped";
         }
+    }
+
+    private void CheckBox_Click(object sender, RoutedEventArgs e)
+    {
+        var lprReaderManager = new LprReaderRepository();
+        foreach (var readerModel in Readers)
+        lprReaderManager.Update(readerModel.LprReader);
     }
 }

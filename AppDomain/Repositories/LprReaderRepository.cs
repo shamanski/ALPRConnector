@@ -1,12 +1,19 @@
 ﻿namespace AppDomain
 {
-    public class LprReaderRepository
+    public class LprReaderRepository : GenericRepository<LprReader>
     {
         private readonly AppSettings _settings;
 
         public LprReaderRepository()
         {
             _settings = ConfigurationLoader.LoadSettings();
+        }
+
+        public void Update(LprReader reader)
+        {
+            var existing = _settings.LprReaders.FirstOrDefault(c => c.Name == reader.Name);
+            existing = reader;
+            ConfigurationLoader.SaveSettings(_settings);
         }
 
         public void AddReader(LprReader reader)

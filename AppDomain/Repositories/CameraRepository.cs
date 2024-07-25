@@ -2,7 +2,7 @@
 
 namespace AppDomain
 {
-    public class CameraRepository
+    public class CameraRepository : GenericRepository<Camera>
     {
         private readonly AppSettings _settings;
 

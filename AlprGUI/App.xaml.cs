@@ -15,8 +15,21 @@ namespace AlprGUI;
 public partial class App : Application
 {
     private LogBox logControl;
+    private static Mutex mutex = new Mutex(true, "{YourAppMutexGUID}");
+
     protected override void OnStartup(StartupEventArgs e)
     {
+        const string mutexId = "{YourAppMutexGUID}";
+        bool createdNew;
+        mutex = new Mutex(true, mutexId, out createdNew);
+
+        if (!createdNew)
+        {
+            System.Windows.MessageBox.Show("An instance of the application is already running.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            Current.Shutdown();
+            return;
+        }
+
         base.OnStartup(e);
     }
 
@@ -32,8 +45,11 @@ public partial class App : Application
         var lprReaders = LoadLprReaders();
         var tasks = new List<Task>();
         foreach (var reader in lprReaders)
+        {
+            if (reader.AutoStart)
             {
-            tasks.Add(Task.Run(() => PortAdapterManager.Instance.StartAdapterAsync(reader.LprReader)));
+                tasks.Add(Task.Run(() => PortAdapterManager.Instance.StartAdapterAsync(reader.LprReader)));
+            }           
         }
         var mainWindow = new MainWindow(logControl);
         mainWindow.Show();

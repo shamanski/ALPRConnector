@@ -7,19 +7,26 @@
              mc:Ignorable="d"
              d:DesignHeight="350" d:DesignWidth="525">
     <Grid>
-        <DataGrid x:Name="dataGrid" ItemsSource="{Binding LprReaders}" AutoGenerateColumns="False" IsReadOnly="True">
+        <DataGrid x:Name="dataGrid" ItemsSource="{Binding LprReaders}" AutoGenerateColumns="False" IsReadOnly="False">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding LprReader.Name}" Width="*" />
-                <DataGridTextColumn Header="RS485Addr" Binding="{Binding LprReader.RS485Addr}" />
-                <DataGridTextColumn Header="ComPortPair" Binding="{Binding LprReader.ComPortPair.Name}" />
-                <DataGridTextColumn Header="Camera" Binding="{Binding LprReader.Camera.Name}" />
-                <DataGridTextColumn Header="Status" Binding="{Binding Status}">
+                <DataGridTextColumn Header="Name" Binding="{Binding LprReader.Name}" Width="*" IsReadOnly="True" />
+                <DataGridTextColumn Header="RS485Addr" Binding="{Binding LprReader.RS485Addr}" IsReadOnly="True" />
+                <DataGridTextColumn Header="ComPortPair" Binding="{Binding LprReader.ComPortPair.Name}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Camera" Binding="{Binding LprReader.Camera.Name}" IsReadOnly="True" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="{Binding Status}"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
+                <DataGridTemplateColumn Header="Auto Start">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding AutoStart, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Click="CheckBox_Click" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom">
