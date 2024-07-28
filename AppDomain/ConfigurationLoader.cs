@@ -56,7 +56,7 @@ namespace AppDomain
 
         }
 
-        public static void SaveSettings(this AppSettings settings)
+        public static void SaveSettings(AppSettings settings)
         {
             var options = new JsonSerializerOptions { WriteIndented = true };
             var json = JsonSerializer.Serialize(settings, options);

@@ -28,7 +28,7 @@ namespace Nomerator
             /*Numberplate detection*/
             stopwatch.Start();
             var result = localizationDetector.Detect(frame);
-              
+            
             foreach (var entry in result.Boxes)
             {
                 
@@ -38,7 +38,7 @@ namespace Nomerator
 
                 /*Numberplate box detection*/
                 using var keypoints = keyPointsDetector.Detect(roiImage);
-                stopwatch.Stop();
+               
                 var plate = new StringBuilder();
                 foreach (var idx in keypoints.Boxes.Keys)
                 {
@@ -60,7 +60,8 @@ namespace Nomerator
                     yield return plate.ToString();
                 }
             }
-            Log.Debug($"{stopwatch.ElapsedMilliseconds} ms");
+            stopwatch.Stop();
+            //Log.Debug($"{stopwatch.ElapsedMilliseconds} ms, {result.Boxes?.Count()} boxes");
 
             stopwatch.Reset();
         }

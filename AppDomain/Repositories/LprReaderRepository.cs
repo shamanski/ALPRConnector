@@ -11,8 +11,12 @@
 
         public void Update(LprReader reader)
         {
-            var existing = _settings.LprReaders.FirstOrDefault(c => c.Name == reader.Name);
-            existing = reader;
+            var existingReaderIndex = _settings.LprReaders.FindIndex(r => r.Name == reader.Name);
+            if (existingReaderIndex != -1)
+            {
+                _settings.LprReaders[existingReaderIndex] = reader;
+            }
+
             ConfigurationLoader.SaveSettings(_settings);
         }
 

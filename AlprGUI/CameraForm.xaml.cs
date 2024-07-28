@@ -1,5 +1,6 @@
 ﻿using AppDomain;
 using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,11 +14,27 @@ namespace AlprGUI
         public event EventHandler<CameraEventArgs> SaveClicked;
         public event EventHandler CancelClicked;
         public Camera Camera { get; set; } = new Camera();
+        public ObservableCollection<string> Manufacturers { get; set; } = new();
 
         public CameraForm()
         {
             InitializeComponent();
             this.DataContext = Camera;
+            ManufacturerComboBox.ItemsSource = Manufacturers;
+
+            LoadManufacturersFromSettings();
+            ManufacturerComboBox.SelectedIndex = 0;
+        }
+
+        public CameraForm(Camera camera)
+        {
+            InitializeComponent();
+            this.DataContext = Camera;
+            this.Camera = camera;
+            ManufacturerComboBox.ItemsSource = Manufacturers;
+
+            LoadManufacturersFromSettings();
+            ManufacturerComboBox.SelectedIndex = Manufacturers.IndexOf(Camera.Manufacturer);
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -29,6 +46,7 @@ namespace AlprGUI
                 IpPort = CameraPortTextBox.Text,
                 Login = CameraLoginTextBox.Text,
                 Password = CameraPasswordTextBox.Text,
+                Manufacturer = ManufacturerComboBox.Text
             };
 
             var context = new ValidationContext(camera, serviceProvider: null, items: null);
@@ -53,6 +71,19 @@ namespace AlprGUI
         {
             CancelClicked?.Invoke(this, EventArgs.Empty);
         }
+
+        private void LoadManufacturersFromSettings()
+        {
+            Manufacturers.Clear();
+            var appSettings = ConfigurationLoader.LoadSettings();
+            if (appSettings?.Cameras != null)
+            {
+                foreach (var m in appSettings.ConnectionTemplates.Keys)
+                {
+                    Manufacturers.Add(m);
+                }
+            }
+        }
     }
 
     public class CameraEventArgs : EventArgs
@@ -64,4 +95,5 @@ namespace AlprGUI
             Camera = camera;
         }
     }
+
 }

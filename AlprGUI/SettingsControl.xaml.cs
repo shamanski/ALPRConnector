@@ -42,12 +42,10 @@ namespace AlprGUI
         {
             if (CamerasList.SelectedItem is Camera selectedCamera)
             {
-                var camera = cameraManager.GetCameraByName(selectedCamera.Name);
-                CameraForm cameraForm = new CameraForm() { DataContext = camera, Camera = camera };
+                var defaultCamera = cameraManager.GetCameraByName(selectedCamera.Name);
+                CameraForm cameraForm = new CameraForm(defaultCamera) { DataContext = defaultCamera };
                 cameraForm.SaveClicked += EditCameraButton_Click;
                 cameraForm.CancelClicked += CameraForm_CancelClicked;              
-                cameraForm.Camera = camera;
-                cameraForm.DataContext = camera;
                 CameraFieldsStackPanel.Children.Add(cameraForm);
                 HideCameraFields();              
             }

@@ -9,6 +9,7 @@
     <UseWindowsForms>True</UseWindowsForms>
     <ApplicationIcon>bin\Debug\net8.0-windows\icon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>

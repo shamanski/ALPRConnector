@@ -1,17 +1,16 @@
 ﻿using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Media;
 using Emgu.CV;
 using System.Windows;
 using AppDomain;
 using System.Windows.Interop;
-using System.Windows.Shapes;
 using System.Windows.Media.Imaging;
 using Camera = AppDomain.Camera;
 using UserControl = System.Windows.Controls.UserControl;
 using MessageBox = System.Windows.MessageBox;
 using Rectangle = System.Windows.Shapes.Rectangle;
 using Point = System.Windows.Point;
+using System.Windows.Media;
 
 namespace AlprGUI
 {
@@ -24,6 +23,10 @@ namespace AlprGUI
         private Point? firstCorner;
         private Point? secondCorner;
         private Camera currentCamera;
+        private int canvasWidth;
+        private int canvasHeight;
+        private WriteableBitmap writeableBitmap;
+        private CancellationTokenSource cts;
 
         public RegionsControl()
         {
@@ -45,26 +48,35 @@ namespace AlprGUI
 
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
+            cts?.Cancel();
             if (cameraComboBox.SelectedItem is Camera selectedCamera)
             {
-                await StartCamera(selectedCamera);
+                cts = new CancellationTokenSource();
+                await StartCamera(selectedCamera, cts.Token);
             }
         }
 
-        private async Task StartCamera(Camera camera)
+        private async Task StartCamera(Camera camera, CancellationToken token)
         {
             try
             {
                 var videoCaptureManager = VideoCaptureService.Instance;
                 var connection = cameraManager.GetConnectionString(camera);
                 currentCamera = camera;
-                await videoCaptureManager.StartProcessingAsync(connection, async frame =>
-                {
-                    int canvasWidth = (int)canvas.ActualWidth;
-                    int canvasHeight = (int)canvas.ActualHeight;
-                   
+                canvasWidth = (int)canvas.ActualWidth;
+                canvasHeight = (int)canvas.ActualHeight;
+                writeableBitmap = new WriteableBitmap(
+                (int)canvasWidth,
+                (int)canvasHeight,
+                96,
+                96,
+                PixelFormats.Bgr24,
+                null);
+                imageControl.Source = writeableBitmap;
+                await videoCaptureManager.StartProcessingAsync(connection, token, async frame =>
+                {                   
                     using var resizedFrame = videoCaptureManager.ResizeFrame(frame, new System.Drawing.Size(canvasWidth, canvasHeight), out _ratio );
-
+                    frame.Dispose();
                     await Dispatcher.InvokeAsync(() =>
                     {
                         if (!isSelectingArea)
@@ -75,7 +87,9 @@ namespace AlprGUI
                             selectionRectangle.Height = camera.Roi.RelativeRoiHeight * resizedFrame.Height;
                         }
                         
-                        imageControl.Source = ToBitmapSource(resizedFrame);
+                        /*imageControl.Source =*/
+                        ToBitmapSource(resizedFrame);
+                        imageControl.Source = writeableBitmap;
                     });
                 });
             }
@@ -144,7 +158,7 @@ namespace AlprGUI
         {
             if (isSelectingArea && selectionRectangle != null && firstCorner != null)
             {
-                Point position = e.GetPosition(canvas); // Получаем координаты относительно imageControl
+                Point position = e.GetPosition(canvas);
                 double width = Math.Abs(firstCorner.Value.X - position.X);
                 double height = Math.Abs(firstCorner.Value.Y - position.Y);
 
@@ -153,19 +167,60 @@ namespace AlprGUI
             }
         }
 
-        private BitmapSource ToBitmapSource(Mat mat)
+        private void ToBitmapSource(Mat mat)
         {
-            using (var bitmap = mat.ToBitmap())
+            if (mat.Width != canvasWidth && mat.Height != canvasHeight)
             {
-                IntPtr hBitmap = bitmap.GetHbitmap();
-                BitmapSource bitmapSource = Imaging.CreateBitmapSourceFromHBitmap(
-                    hBitmap,
-                    IntPtr.Zero,
-                    Int32Rect.Empty,
-                    BitmapSizeOptions.FromEmptyOptions());
-                bitmapSource.Freeze();
-                mat.Dispose();
-                return bitmapSource;
+                return;
+            }
+            try
+            {
+                writeableBitmap.Lock();
+
+                unsafe
+                {
+                    long pBackBuffer = writeableBitmap.BackBuffer.ToInt64();
+                    long pFrame = mat.DataPointer.ToInt64();
+
+                    int totalPixels = mat.Width * mat.Height * 3;
+                    int pixel = 0;
+
+                    while (pixel++ < totalPixels)
+                        *((byte*)pBackBuffer++) = *((byte*)pFrame++);
+                }
+
+                writeableBitmap.AddDirtyRect(new Int32Rect(0, 0, mat.Width, mat.Height));
+            }
+            finally
+            {
+                writeableBitmap.Unlock();
+            }
+        }
+
+        private void UserControl_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            try
+            {
+                writeableBitmap?.Lock();
+                canvasWidth = (int)canvas.ActualWidth;
+                canvasHeight = (int)canvas.ActualHeight;
+                writeableBitmap = new WriteableBitmap(
+                (int)canvasWidth,
+                (int)canvasHeight,
+                96,
+                96,
+                PixelFormats.Bgr24,
+                null);
+                //imageControl.Source = writeableBitmap;
+            }
+
+            finally
+            {
+                if (writeableBitmap.IsFrozen)
+                {
+                    writeableBitmap.Unlock();
+                }
+                    
             }
         }
     }

@@ -16,7 +16,7 @@ namespace AppDomain
 
         public string ComPortPairName { get; set; }
         public string CameraName { get; set; }
-        public bool AutoStart { get; set; } = true;
+        public bool AutoStart { get; set; } = false;
 
         [JsonIgnore]
         public ComPortPair ComPortPair { get; set; }

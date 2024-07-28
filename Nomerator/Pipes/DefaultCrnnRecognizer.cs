@@ -57,9 +57,11 @@ namespace Nomerator
             };
             using var rotationMatrix = CvInvoke.GetPerspectiveTransform(box, targetVertices);
             using var cropped = new Mat();
-
+            using var norm = new Mat();
             CvInvoke.WarpPerspective(image, cropped, rotationMatrix, this.inputSize);
-            var result = model.Recognize(cropped)?.ToUpper();
+            CvInvoke.Normalize(cropped, norm, 0, 255, Emgu.CV.CvEnum.NormType.MinMax, Emgu.CV.CvEnum.DepthType.Cv32F);
+            //CvInvoke.Imwrite("t.jpg", norm);
+            var result = model.Recognize(norm)?.ToUpper();
             return result?.Replace("\r", string.Empty);
         }
        

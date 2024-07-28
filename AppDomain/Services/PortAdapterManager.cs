@@ -25,7 +25,7 @@ public class PortAdapterManager
         _cancellationTokenSources = new ConcurrentDictionary<string, CancellationTokenSource>();
         _adapterStatus = new ConcurrentDictionary<string, string>();
         _comPortService = new ComPortService();
-        //HealthCheck.RegisterService(_comPortService);
+        HealthCheck.RegisterService(_comPortService);
         Log.Information("LPR to COM adapter started");
     }
 
@@ -36,7 +36,7 @@ public class PortAdapterManager
         lock (_locker)
         {
             portAdapter = new PortAdapter(_comPortService, reader);
-            //HealthCheck.RegisterService(portAdapter);
+            HealthCheck.RegisterService(portAdapter);
             if (_adapters.TryAdd(reader, portAdapter))
             {
                 _cancellationTokenSources[reader.Name] = cancellationTokenSource;

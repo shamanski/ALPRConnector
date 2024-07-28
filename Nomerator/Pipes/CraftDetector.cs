@@ -7,6 +7,8 @@ using Microsoft.ML.OnnxRuntime;
 using MathNet.Numerics.LinearAlgebra;
 using NumpyDotNet;
 using Microsoft.ML.OnnxRuntime.Tensors;
+using System.Diagnostics;
+using Serilog;
 namespace Nomerator
 {
     public class CraftDetector : IDisposable
@@ -45,6 +47,8 @@ namespace Nomerator
         private readonly IReadOnlyCollection<FixedBufferOnnxValue> _inputRefinerValues;
         private readonly IReadOnlyCollection<FixedBufferOnnxValue> _outputRefinerValues;
 
+        Stopwatch sw = new Stopwatch();
+
         public CraftDetector(string modelFile = "models/craft.onnx", int modelImageWidth = 320, int modelImageHeight = 96)
         {
             _modelImageHeight = modelImageHeight;
@@ -80,6 +84,8 @@ namespace Nomerator
             _inputRefinerValues = [_valueOutputY, _valueOutputFeature];
             _outputRefinerValues = [_valueOutputRefiner];
 
+            
+
             var opts = new SessionOptions()
             {
                 IntraOpNumThreads = 2,
@@ -94,14 +100,15 @@ namespace Nomerator
 
         public DetectionResult Detect(Mat image, float lowText = 0.4f, float textThreshold = 0.6f, float linkThreshold = 0.6f)
         {
-
             var img_h = _modelImageHeight / 2;
             var img_w = _modelImageWidth / 2;
             var xx = image.ToInput();         
 
             PrepareTensor(image);
+            
             _session.Run(_inputNames, _inputValues, _outputNames, _outputValues);
             _refinerSession.Run(_inputRefinerNames, _inputRefinerValues, _outputRefinerNames, _outputRefinerValues);
+            sw.Stop();
             var outputSize = new Size(img_w, img_h);
             using var textmap = new Mat(outputSize, DepthType.Cv32F, 1);         
             using var linkmap = new Mat(outputSize, DepthType.Cv32F, 1);
@@ -132,8 +139,8 @@ namespace Nomerator
             var centroids = centroidsMat.ToImageNDarray<float>();
             var boxes = new Dictionary<int, PointF[]>();
             var allPoints = new List<PointF>();
-
             
+
             for (var k = 1; k < nLabels; k++)
             {
                 // size filtering
@@ -167,7 +174,7 @@ namespace Nomerator
                 var ex = x + w + niter + 1;
                 var sy = y - niter;
                 var ey = y + h + niter + 1;
-
+               
                 // boundary check
                 if (sx < 0) sx = 0;
                 if (sy < 0) sy = 0;
@@ -219,7 +226,7 @@ namespace Nomerator
                 boxes.Add(k, box.ToPointsFloatArray().AdjustResultCoordinates(1, 1));
 
             }
-
+            
             return new DetectionResult
             {
                 Boxes = boxes

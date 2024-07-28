@@ -71,16 +71,17 @@ namespace AppDomain
             DateTime lastFrameTime = DateTime.Now;
             using var videoCapture = new VideoCapture(_connection);
             videoCapture.Set(CapProp.Buffersize, 2.0);
+            videoCapture.Set(CapProp.Fps, 8);
             if (!videoCapture.IsOpened)
             {
                 Log.Error("Error connecting to camera... Restart.");
-                throw new Exception();
+                throw new Exception("No frame received");
             }
 
             Log.Information($"Capture started on thread: {Thread.CurrentThread.ManagedThreadId}");
             using var frame = new Mat();
             var sw = new Stopwatch();
-            //await processResult("CAMREADY");
+            await processResult("CAMREADY");
             var roiRect = new Rectangle()
             {
                 X = (int)(roi.RelativeRoiLeft * videoCapture.Width),
@@ -90,7 +91,11 @@ namespace AppDomain
             };
             while (!cancellationToken.IsCancellationRequested)
             {
-                videoCapture.Set(CapProp.PosFrames, videoCapture.Get(CapProp.FrameCount) - 1);
+                for (int i = 0; i < 5; i++)
+                {
+                    videoCapture.Grab();
+                }
+
                 videoCapture.Read(frame);
                 if (frame == null || frame.IsEmpty)
                 {
@@ -135,7 +140,7 @@ namespace AppDomain
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                await Task.Delay(3000);                      
+                await Task.Delay(4000);                      
                 while (_plates.TryDequeue(out var plate))
                 {
                     platesList.Add(plate);

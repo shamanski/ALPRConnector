@@ -29,9 +29,9 @@ namespace AppDomain
 
         public void EditCamera(Camera camera)
         {
-            var existing = _settings.Cameras.FirstOrDefault(c => c.Name == camera.Name);
-                existing = camera;
-                ConfigurationLoader.SaveSettings(_settings);
+            var existingIndex = _settings.Cameras.FindIndex(c => c.Name == camera.Name);
+            _settings.Cameras[existingIndex] = camera;
+            ConfigurationLoader.SaveSettings(_settings);
         }
 
         public void RemoveCamera(string name)
@@ -52,7 +52,7 @@ namespace AppDomain
 
         public string GetConnectionString(Camera camera)
         {
-            var template = _settings.ConnectionTemplates["Default China"];
+            var template = _settings.ConnectionTemplates[camera.Manufacturer?? "Default China"];
             var variables = new Dictionary<string, string>
             {
                 { "user", camera.Login },

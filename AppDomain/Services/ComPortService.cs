@@ -67,7 +67,7 @@ public class ComPortService : IDisposable, IHealthCheckService
                 listenerThread = new Thread(async () => await ListenPort(portName, tcs))
                 {
                     Priority = ThreadPriority.Highest,
-                   //IsBackground = true,                   
+                    IsBackground = true,                   
                 };
                 
                 listenerThread.Start();
@@ -93,7 +93,7 @@ public class ComPortService : IDisposable, IHealthCheckService
     {
         try
         {
-            await Task.Delay(3000);
+            await Task.Delay(5000);
             Log.Information($"Starting COM port listening on thread: {Thread.CurrentThread.ManagedThreadId}");
             var serialPort = _ports[portName];
             serialPort.BaseStream.Flush();
@@ -105,7 +105,6 @@ public class ComPortService : IDisposable, IHealthCheckService
                     try
                     {
                     await serialPort.BaseStream.ReadAsync(readBuffer, 0, 3).ConfigureAwait(false);
-
                     caH = readBuffer[0];
                     caL = readBuffer[1];
                     caC = readBuffer[2];
@@ -219,21 +218,27 @@ public class ComPortService : IDisposable, IHealthCheckService
 
         answ[9] = (byte)(chksum % 0x40);
         sw.Stop();
-        if (sw.ElapsedMilliseconds < 3)
+        if (sw.ElapsedMilliseconds < 15)
         {
-            await port.BaseStream.WriteAsync(answ, 0, answ.Length).ConfigureAwait(false);
+            //await Task.Delay(20);
+            await Task.Delay(3);
+            await port.BaseStream.WriteAsync(answ, 0, answ.Length);
+            await port.BaseStream.FlushAsync();
+            if (!string.IsNullOrEmpty(lp))
+            {
+                Log.Debug($"{lp} sent to {port.PortName}, addr {rs485Address}");
+                await Task.Delay(40);
+            }
+            _lpDictionary.TryRemove((port.PortName, rs485Address), out _);
+            
+        }        
+        
+        else
+        {
+            Log.Debug($"Slow response: {sw.ElapsedMilliseconds} ms");
         }
-        else Log.Debug("Slow");
-        
-        
-        await port.BaseStream.FlushAsync().ConfigureAwait(false);
-        await Task.Delay(6);
 
-        _lpDictionary.TryRemove((port.PortName, rs485Address), out _);
-        if (!string.IsNullOrEmpty(lp))
-        {
-            Log.Debug($"{lp} sent to {port.PortName}, addr {rs485Address}");
-        }
+        
     }
 
     private int ExtractRs485Address(byte caH, byte caL)
